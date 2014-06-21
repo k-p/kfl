@@ -1,0 +1,322 @@
+/* -*-c++-*-
+ *
+ *  Created by Keith Dennison on 26/07/2013.
+ *  Copyright (c) 2013 Keith Dennison. All rights reserved.
+ */
+
+#ifndef __EXPR_ICC__
+#define __EXPR_ICC__
+
+#include <cassert>
+#include <functional>
+
+#include "Expr.h"
+#include "Visitor.h"
+
+template<class T>
+kfl::Expr<T>::~Expr()
+{
+}
+
+template<class T>
+bool kfl::Expr<T>::isAtomic() const
+{
+  return false;
+}
+
+template<class T>
+bool kfl::Expr<T>::operator==(const Expr<T> & other) const
+{
+  return (this == &other);
+}
+
+template<class T>
+kfl::AtomicExpr<T>::~AtomicExpr()
+{
+}
+
+template<class T>
+bool kfl::AtomicExpr<T>::isAtomic() const
+{
+  return true;
+}
+
+template<class T>
+kfl::EVar<T>::EVar(const T & name)
+  : super(), m_name(name)
+{
+  assert(!m_name.empty());
+}
+
+template<class T>
+kfl::EVar<T>::~EVar()
+{
+}
+
+template<class T>
+void kfl::EVar<T>::visit(Visitor<T> & v) const
+{
+  v.visitVar(*this);
+}
+
+template<class T>
+const T & kfl::EVar<T>::getId() const
+{
+  return m_name;
+}
+
+template<class T>
+kfl::ENum<T>::ENum(int n)
+  : super(), m_num(n)
+{
+}
+
+template<class T>
+kfl::ENum<T>::~ENum()
+{
+}
+
+template<class T>
+void kfl::ENum<T>::visit(Visitor<T> & v) const
+{
+  v.visitNum(*this);
+}
+
+template<class T>
+int kfl::ENum<T>::getNum() const
+{
+  return m_num;
+}
+
+template<class T>
+kfl::EConstr<T>::EConstr(int tag, int arity)
+  : super(), m_tag(tag), m_arity(arity)
+{
+}
+
+template<class T>
+kfl::EConstr<T>::~EConstr()
+{
+}
+
+template<class T>
+void kfl::EConstr<T>::visit(Visitor<T> & v) const
+{
+  v.visitConstr(*this);
+}
+
+template<class T>
+int kfl::EConstr<T>::getTag() const
+{
+  return m_tag;
+}
+
+template<class T>
+int kfl::EConstr<T>::getArity() const
+{
+  return m_arity;
+}
+
+template<class T>
+kfl::EAp<T>::EAp(Expr<T> * fn, Expr<T> * arg)
+  : super(), m_fn(fn), m_arg(arg)
+{
+  assert(m_fn);
+  assert(m_arg);
+}
+
+template<class T>
+kfl::EAp<T>::~EAp()
+{
+}
+
+template<class T>
+void kfl::EAp<T>::visit(Visitor<T> & v) const
+{
+  v.visitAp(*this);
+}
+
+template<class T>
+const kfl::Expr<T> & kfl::EAp<T>::getFn() const
+{
+  assert(m_fn);
+  return *m_fn;
+}
+
+template<class T>
+const kfl::Expr<T> & kfl::EAp<T>::getArg() const
+{
+  assert(m_arg);
+  return *m_arg;
+}
+
+template<class T>
+kfl::ELet<T>::ELet(DefnVec * defns, Expr<T> * body, bool isRec)
+  : super(), m_defns(defns), m_body(body), m_isRec(isRec)
+{
+  assert(m_defns);
+  assert(m_defns->size() >= 1);
+  assert(m_body);
+}
+
+template<class T>
+kfl::ELet<T>::~ELet()
+{
+}
+
+template<class T>
+void kfl::ELet<T>::visit(Visitor<T> & v) const
+{
+  v.visitLet(*this);
+}
+
+template<class T>
+bool kfl::ELet<T>::isRec() const
+{
+  return m_isRec;
+}
+
+template<class T>
+const typename kfl::ELet<T>::DefnVec & kfl::ELet<T>::getDefns() const
+{
+  assert(m_defns);
+  return *m_defns;
+}
+
+template<class T>
+const kfl::Expr<T> & kfl::ELet<T>::getBody() const
+{
+  assert(m_body);
+  return *m_body;
+}
+
+template<class T>
+kfl::ECase<T>::ECase(Expr<T> * expr, AlterVec * alters)
+  : super(), m_expr(expr), m_alters(alters)
+{
+  assert(m_expr);
+  assert(m_alters);
+  assert(m_alters->size() >= 1);
+}
+
+template<class T>
+kfl::ECase<T>::~ECase()
+{
+  assert(m_alters);
+
+  for (auto a = m_alters->begin(); a != m_alters->end(); ++a) {
+    delete a->m_num;
+    delete a->m_binders;
+    delete a->m_expr;
+  }
+  delete m_alters;
+}
+
+template<class T>
+void kfl::ECase<T>::visit(Visitor<T> & v) const
+{
+  v.visitCase(*this);
+}
+
+template<class T>
+kfl::ELam<T>::ELam(BndVec * binders, Expr<T> * body)
+  : super(), m_binders(binders), m_body(body)
+{
+  assert(m_binders);
+  assert(m_binders->size() >= 1);
+  assert(body);
+}
+
+template<class T>
+kfl::ELam<T>::~ELam()
+{
+}
+
+template<class T>
+void kfl::ELam<T>::visit(Visitor<T> & v) const
+{
+  v.visitLam(*this);
+}
+
+template<class T>
+const typename kfl::ELam<T>::BndVec & kfl::ELam<T>::getBinders() const
+{
+  assert(m_binders);
+  return *m_binders;
+}
+
+template<class T>
+const kfl::Expr<T> & kfl::ELam<T>::getBody() const
+{
+  assert(m_body);
+  return *m_body;
+}
+
+template<class T>
+const kfl::Expr<T> & kfl::ECase<T>::getExpr() const
+{
+  assert(m_expr);
+  return *m_expr;
+}
+
+template<class T>
+const typename kfl::ECase<T>::AlterVec & kfl::ECase<T>::getAlters() const
+{
+  assert(m_alters);
+  return *m_alters;
+}
+
+template<class T>
+kfl::ScDefn<T>::ScDefn(const T & name, BndVec * binders, Expr<T> * body)
+  : m_name(name), m_binders(binders), m_body(body)
+{
+  assert(!m_name.empty());
+  assert(m_body);
+}
+
+template<class T>
+kfl::ScDefn<T>::~ScDefn()
+{
+}
+
+template<class T>
+const T & kfl::ScDefn<T>::getName() const
+{
+  return m_name;
+}
+
+template<class T>
+const typename kfl::ScDefn<T>::BndVec * kfl::ScDefn<T>::getBinders() const
+{
+  return m_binders.get();
+}
+
+template<class T>
+const kfl::Expr<T> & kfl::ScDefn<T>::getBody() const
+{
+  assert(m_body);
+  return *m_body;
+}
+
+template<class T>
+kfl::Program<T>::Program(ScDefnVec * defns)
+  : m_defns(defns)
+{
+}
+
+template<class T>
+kfl::Program<T>::~Program()
+{
+  for (auto d = m_defns->begin(); d != m_defns->end(); ++d) {
+    delete (*d);
+  }
+}
+
+template<class T>
+const typename kfl::Program<T>::ScDefnVec & kfl::Program<T>::getDefns() const
+{
+  assert(m_defns);
+  return *m_defns;
+}
+
+#endif /* __EXPR_ICC__ */
