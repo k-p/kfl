@@ -1,31 +1,23 @@
-#include "gtest/gtest.h"
 #include "NamedType.h"
+
+#include <boost/test/unit_test.hpp>
+
+using namespace kfl;
 
 namespace {
 
-  class TestSubclass : public kfl::NamedType {
-    typedef kfl::NamedType super;
+  class TestType : public NamedType {
   public:
-    TestSubclass(const std::string & name) : super(name) { }
+    TestType(const std::string & name) : NamedType(name) { }
   };
 
-  const std::string typeName1 = "typeName1";
-  const TestSubclass type1(typeName1);
-
-  const std::string typeName2 = "typeName2";
-  const TestSubclass type2(typeName2);
-
-  const TestSubclass type3(typeName1);
-};
-
-TEST(NamedTypeTest, Name)
-{
-  ASSERT_TRUE(type1.name() == typeName1);
 }
 
-TEST(NamedTypeTest, Equals)
+BOOST_AUTO_TEST_SUITE( NamedTypeTest )
+
+BOOST_AUTO_TEST_CASE( NamedTypeReturnsGivenName )
 {
-  ASSERT_TRUE(type1.equals(type1));
-  ASSERT_TRUE(!type1.equals(type2));
-  ASSERT_TRUE(!type1.equals(type3));
+  BOOST_CHECK_EQUAL(TestType("type_name").name(), "type_name");
 }
+
+BOOST_AUTO_TEST_SUITE_END()

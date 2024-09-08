@@ -9,27 +9,30 @@
 
 #include "Expr.h"
 #include "ExprFactory.h"
+#include "Visitor.h"
 
 #include <string>
 
 namespace kfl {
 
-  typedef std::string CoreId;
+  using CoreId = std::string;
 
-  typedef Expr<CoreId> CoreExpr;
-  typedef EVar<CoreId> CoreVar;
-  typedef ENum<CoreId> CoreNum;
-  typedef EConstr<CoreId> CoreConstr;
-  typedef EAp<CoreId> CoreAp;
-  typedef ELet<CoreId> CoreLet;
-  typedef ECase<CoreId> CoreCase;
-  typedef ELam<CoreId> CoreLam;
+  using CoreExpr = Expr<CoreId>;
+  using CoreVar = EVar<CoreId>;
+  using CoreNum = ENum<CoreId>;
+  using CoreConstr = EConstr<CoreId>;
+  using CoreAp = EAp<CoreId>;
+  using CoreLet = ELet<CoreId>;
+  using CoreCase = ECase<CoreId>;
+  using CoreLam = ELam<CoreId>;
 
-  typedef ScDefn<CoreId> CoreScDefn;
-  typedef Program<CoreId> CoreProgram;
+  using CoreScDefn = ScDefn<CoreId>;
+  using CoreProgram = Program<CoreId>;
 
-  typedef ExprFactory<CoreId> CoreExprFactory;
+  using CoreFactory = ExprFactory<CoreId>;
 
+  using CoreVisitor = Visitor<CoreId>;
+  using CoreDefaultVisitor = DefaultVisitor<CoreId>;
 }
 
 #endif /* __CORE_EXPR_H__ */

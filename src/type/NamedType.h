@@ -1,19 +1,22 @@
 #ifndef __NAMEDTYPE_H__
 #define __NAMEDTYPE_H__
 
-#include <string>
-
 #include "Type.h"
+
+#include <string>
 
 namespace kfl {
 
   class NamedType : public Type
   {
-    typedef Type super;
+    using super = Type;
+
   public:
-    virtual const std::string & name() const;
+    const std::string & name() const override;
+
   protected:
     NamedType(const std::string & name);
+
   private:
     const std::string m_name;
   };

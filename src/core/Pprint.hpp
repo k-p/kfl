@@ -4,15 +4,14 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#ifndef __PPRINT_ICC__
-#define __PPRINT_ICC__
+#pragma once
+
+#include "Pprint.h"
 
 #include <cassert>
 #include <functional>
 #include <ostream>
 #include <string>
-
-#include "Pprint.h"
 
 namespace {
   template<class T, class ObjectPtrs>
@@ -21,14 +20,14 @@ namespace {
     bool first = true;
     for (auto o : objectPtrs) {
       if (o) {
-	if (!first) {
-	  os << separator;
-	}
-	else {
-	  first = false;
-	}
-	kfl::Pprint<T> pp(os);
-	pp.visit(*o);
+        if (!first) {
+          os << separator;
+        }
+        else {
+          first = false;
+        }
+        kfl::Pprint<T> pp(os);
+        pp.visit(*o);
       }
     }
   }
@@ -146,17 +145,17 @@ void kfl::Pprint<T>::visitCase(const ECase<T> & e)
 template<class T>
 void kfl::Pprint<T>::visitCaseAlter(const typename ECase<T>::Alter & alter)
 {
-  assert(alter.m_num);
-  assert(alter.m_expr);
+  assert(alter.num);
+  assert(alter.expr);
 
   m_os << '<';
-  visitNum(*alter.m_num);
+  visitNum(*alter.num);
   m_os << '>';
-  if (alter.m_binders) {
-    pprintListWithPrefix(*alter.m_binders, m_os, ' ');
+  if (alter.binders) {
+    pprintListWithPrefix(*alter.binders, m_os, ' ');
   }
   m_os << " -> ";
-  super::visitExpr(*alter.m_expr);
+  super::visitExpr(*alter.expr);
 
 }
 
@@ -200,5 +199,3 @@ void kfl::PprintA<T>::visitExpr(const Expr<T> & e)
     super::m_os << ')';
   }
 }
-
-#endif /* __PPRINT_ICC__ */

@@ -4,168 +4,133 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#include <sstream>
+#include "CoreExpr.h"
 
-#include "gtest/gtest.h"
-#include "Expr.h"
+#include <boost/test/unit_test.hpp>
 
-TEST(ExprTest, Var)
+using namespace kfl;
+using std::make_shared;
+
+BOOST_AUTO_TEST_SUITE( ExprTest )
+
+BOOST_AUTO_TEST_CASE( EVar )
 {
-  typedef kfl::EVar<std::string> TestVar;
+  const CoreVar e("variable_name");
 
-  const std::string cVarName = "name";
-  const TestVar e(cVarName);
-
-  ASSERT_TRUE(e.isAtomic());
-  ASSERT_TRUE(e.getId() == cVarName);
+  BOOST_CHECK_EQUAL(e.isAtomic(), true);
+  BOOST_CHECK_EQUAL(e.getId(), "variable_name");
 }
 
-TEST(ExprTest, Num)
+BOOST_AUTO_TEST_CASE( ENum )
 {
-  typedef kfl::ENum<std::string> TestNum;
+  const CoreNum e(1);
 
-  const int cNum = 1;
-  const TestNum e(cNum);
-
-  ASSERT_TRUE(e.isAtomic());
-  ASSERT_TRUE(e.getNum() == cNum);
+  BOOST_CHECK_EQUAL(e.isAtomic(), true);
+  BOOST_CHECK_EQUAL(e.getNum(), 1);
 }
 
-TEST(ExprTest, Constr)
+BOOST_AUTO_TEST_CASE( EConstr )
 {
-  typedef kfl::EConstr<std::string> TestConstr;
-
   const int cTag = 1;
   const int cArity = 2;
-  const TestConstr e(cTag,cArity);
+  const CoreConstr e(cTag,cArity);
 
-  ASSERT_TRUE(!e.isAtomic());
-  ASSERT_TRUE(e.getTag() == cTag);
-  ASSERT_TRUE(e.getArity() == cArity);
+  BOOST_CHECK_EQUAL(e.isAtomic(), false);
+  BOOST_CHECK_EQUAL(e.getTag(), cTag);
+  BOOST_CHECK_EQUAL(e.getArity(), cArity);
 }
 
-TEST(ExprTest, Ap)
+BOOST_AUTO_TEST_CASE( EAp )
 {
-  typedef kfl::EAp<std::string> TestAp;
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ENum<std::string> TestNum;
-  typedef kfl::EVar<std::string> TestVar;
+  auto f = make_shared<CoreVar>("fn");
+  auto arg = make_shared<CoreNum>(0);
+  const CoreAp e(f, arg);
 
-  TestExpr * f = new TestVar("fn");
-  TestExpr * arg = new TestNum(0);
-  const TestAp e(f, arg);
-
-  ASSERT_TRUE(!e.isAtomic());
-  ASSERT_TRUE(e.getFn() == *f);
-  ASSERT_TRUE(e.getArg() == *arg);
+  BOOST_CHECK_EQUAL(e.isAtomic(), false);
+  BOOST_CHECK_EQUAL(&e.getFn(), f.get());
+  BOOST_CHECK_EQUAL(&e.getArg(), arg.get());
 }
 
-TEST(ExprTest, Let)
+BOOST_AUTO_TEST_CASE( ELet )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ELet<std::string> TestLet;
-  typedef kfl::ENum<std::string> TestNum;
-  typedef kfl::EVar<std::string> TestVar;
-
-  TestLet::Defn d1("x", new TestNum(0));
-  TestLet::Defn d2("y", new TestNum(1));
-  TestLet::DefnVec * defns = new TestLet::DefnVec();
+  CoreLet::Defn d1("x", make_shared<CoreNum>(0));
+  CoreLet::Defn d2("y", make_shared<CoreNum>(1));
+  auto defns = make_shared<CoreLet::DefnVec>();
   defns->push_back(d1);
   defns->push_back(d2);
-  TestExpr * body = new TestVar("x");
-  const TestLet e(defns, body);
+  auto body = make_shared<CoreVar>("x");
+  const CoreLet e(defns, body);
 
-  ASSERT_TRUE(!e.isAtomic());
-  ASSERT_TRUE(&e.getDefns() == defns);
-  ASSERT_TRUE(&e.getBody() == body);
+  BOOST_CHECK_EQUAL(e.isAtomic(), false);
+  BOOST_CHECK_EQUAL(&e.getDefns(), defns.get());
+  BOOST_CHECK_EQUAL(&e.getBody(), body.get());
 }
 
-TEST(ExprTest, Case)
+BOOST_AUTO_TEST_CASE( ECase )
 {
-  typedef kfl::ECase<std::string> TestCase;
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ENum<std::string> TestNum;
-  typedef kfl::EVar<std::string> TestVar;
-
-  TestCase::BndVec * binders1 = 0;
-  TestCase::Alter a1  = { new TestNum(1), binders1, new TestVar("x") };
-  TestCase::BndVec * binders2 = new TestCase::BndVec();
-  binders2->push_back("y");
-  binders2->push_back("z");
-  TestCase::Alter a2  = { new TestNum(2), binders2, new TestVar("y") };
-  TestCase::AlterVec * alters = new TestCase::AlterVec();
+  CoreCase::Alter a1 = { make_shared<CoreNum>(1), nullptr, make_shared<CoreVar>("x") };
+  auto binders = make_shared<CoreCase::BndVec>();
+  binders->push_back("y");
+  binders->push_back("z");
+  CoreCase::Alter a2  = { make_shared<CoreNum>(2), binders, make_shared<CoreVar>("y") };
+  auto alters = make_shared<CoreCase::AlterVec>();
   alters->push_back(a1);
   alters->push_back(a2);
-  TestExpr * expr = new TestVar("x");
-  const TestCase e(expr, alters);
+  auto expr = make_shared<CoreVar>("x");
+  const CoreCase e(expr, alters);
 
-  ASSERT_TRUE(!e.isAtomic());
-  ASSERT_TRUE(&e.getExpr() == expr);
-  ASSERT_TRUE(&e.getAlters() == alters);
+  BOOST_CHECK_EQUAL(e.isAtomic(), false);
+  BOOST_CHECK_EQUAL(&e.getExpr(), expr.get());
+  BOOST_CHECK_EQUAL(&e.getAlters(), alters.get());
 }
 
-TEST(ExprTest, Lam)
+BOOST_AUTO_TEST_CASE( ELam )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ELam<std::string> TestLam;
-  typedef kfl::EVar<std::string> TestVar;
-
-  TestLam::BndVec * binders = new TestLam::BndVec();
+  auto binders = make_shared<CoreLam::BndVec>();
   binders->push_back("x");
   binders->push_back("y");
-  TestExpr * body = new TestVar("x");
-  const TestLam e(binders, body);
+  auto body = make_shared<CoreVar>("x");
+  const CoreLam e(binders, body);
 
-  ASSERT_TRUE(!e.isAtomic());
-  ASSERT_TRUE(&e.getBinders() == binders);
-  ASSERT_TRUE(&e.getBody() == body);
+  BOOST_CHECK_EQUAL(e.isAtomic(), false);
+  BOOST_CHECK_EQUAL(&e.getBinders(), binders.get());
+  BOOST_CHECK_EQUAL(&e.getBody(), body.get());
 }
 
-TEST(ExprTest, ScDefnWithoutArgs)
+BOOST_AUTO_TEST_CASE( ScDefnWithoutArgs )
 {
-  typedef kfl::ScDefn<std::string> TestScDefn;
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::EVar<std::string> TestVar;
+  auto body = make_shared<CoreVar>("x");
+  CoreScDefn defn("test", nullptr, body);
 
-  const std::string name("test");
-  TestExpr * body = new TestVar("x");
-  TestScDefn defn(name, 0, body);
-  ASSERT_TRUE(defn.getName() == name);
-  ASSERT_TRUE(defn.getBinders() == 0);
-  ASSERT_TRUE(&defn.getBody() == body);
+  BOOST_CHECK_EQUAL(defn.getName(), "test");
+  BOOST_CHECK_EQUAL(defn.getBinders(), nullptr);
+  BOOST_CHECK_EQUAL(&defn.getBody(), body.get());
 }
 
-TEST(ExprTest, ScDefnWithArgs)
+BOOST_AUTO_TEST_CASE( ScDefnWithArgs )
 {
-  typedef kfl::ScDefn<std::string> TestScDefn;
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::EVar<std::string> TestVar;
-
-  const std::string name("test");
-  TestScDefn::BndVec * binders = new TestScDefn::BndVec();
+  auto binders = make_shared<CoreScDefn::BndVec>();
   binders->push_back("x");
   binders->push_back("y");
-  TestExpr * body = new TestVar("x");
-  TestScDefn defn(name, binders, body);
+  auto body = make_shared<CoreVar>("x");
+  CoreScDefn defn("test", binders, body);
 
-  ASSERT_TRUE(defn.getName() == name);
-  ASSERT_TRUE(defn.getBinders() == binders);
-  ASSERT_TRUE(&defn.getBody() == body);
+  BOOST_CHECK_EQUAL(defn.getName(), "test");
+  BOOST_CHECK_EQUAL(defn.getBinders(), binders.get());
+  BOOST_CHECK_EQUAL(&defn.getBody(), body.get());
 }
 
-TEST(ExprTest, Program)
+BOOST_AUTO_TEST_CASE( Program )
 {
-  typedef kfl::Program<std::string> TestProgram;
-  typedef kfl::ScDefn<std::string> TestScDefn;
-  typedef kfl::EVar<std::string> TestVar;
-
-  TestScDefn * defn1 = new TestScDefn("test1", 0, new TestVar("x"));
-  TestScDefn * defn2 = new TestScDefn("test2", 0, new TestVar("y"));
-  TestProgram::ScDefnVec * defns = new TestProgram::ScDefnVec();
+  auto defn1 = make_shared<CoreScDefn>("test1", nullptr, make_shared<CoreVar>("x"));
+  auto defn2 = make_shared<CoreScDefn>("test2", nullptr, make_shared<CoreVar>("y"));
+  auto defns = make_shared<CoreProgram::ScDefnVec>();
   defns->push_back(defn1);
   defns->push_back(defn2);
 
-  TestProgram program(defns);
+  CoreProgram program(defns);
 
-  ASSERT_TRUE(&program.getDefns() == defns);
+  BOOST_CHECK_EQUAL(&program.getDefns(), defns.get());
 }
+
+BOOST_AUTO_TEST_SUITE_END()

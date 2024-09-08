@@ -4,13 +4,12 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#ifndef __PARSER_H__
-#define __PARSER_H__
-
-#include <vector>
+#pragma once
 
 #include "boost/noncopyable.hpp"
 #include "boost/variant.hpp"
+
+#include <vector>
 
 namespace kfl {
 
@@ -36,7 +35,7 @@ namespace kfl {
       AstNum tag;
       AstNum arity;
       bool operator==(const kfl::Parser::AstConstr & rhs) const {
-	return (tag == rhs.tag && arity == rhs.arity);
+        return (this == &rhs) || (tag == rhs.tag && arity == rhs.arity);
       }
     };
 
@@ -60,7 +59,7 @@ namespace kfl {
       AstVarVec vars;
       AstExpr expr;
       bool operator==(const AstAlt & rhs) const {
-	return (tag == rhs.tag && vars == rhs.vars && expr == rhs.expr);
+        return (this == &rhs) || (tag == rhs.tag && vars == rhs.vars && expr == rhs.expr);
       }
     };
 
@@ -68,7 +67,7 @@ namespace kfl {
       AstExpr expr;
       AstAltVec alts;
       bool operator==(const AstCase & rhs) const {
-	return (expr == rhs.expr && alts == rhs.alts);
+        return (this == &rhs) || (expr == rhs.expr && alts == rhs.alts);
       }
     };
 
@@ -76,7 +75,7 @@ namespace kfl {
       AstVar var;
       AstExpr expr;
       bool operator==(const AstDefn & rhs) const {
-	return (var == rhs.var && expr == rhs.expr);
+        return (this == &rhs) || (var == rhs.var && expr == rhs.expr);
       }
     };
 
@@ -84,7 +83,7 @@ namespace kfl {
       AstVarVec args;
       AstExpr expr;
       bool operator==(const AstLambda & rhs) const {
-	return (args == rhs.args && expr == rhs.expr);
+        return (this == &rhs) || (args == rhs.args && expr == rhs.expr);
       }
     };
 
@@ -92,7 +91,7 @@ namespace kfl {
       AstDefnVec defns;
       AstExpr expr;
       bool operator==(const AstLet & rhs) const {
-	return (defns == rhs.defns && expr == rhs.expr);
+        return (this == &rhs) || (defns == rhs.defns && expr == rhs.expr);
       }
     };
 
@@ -100,7 +99,7 @@ namespace kfl {
       AstDefnVec defns;
       AstExpr expr;
       bool operator==(const AstLetRec & rhs) const {
-	return (defns == rhs.defns && expr == rhs.expr);
+        return (this == &rhs) || (defns == rhs.defns && expr == rhs.expr);
       }
     };
 
@@ -109,7 +108,7 @@ namespace kfl {
       AstVarVec args;
       AstExpr expr;
       bool operator==(const AstScDefn & rhs) const {
-	return (name == rhs.name && args == rhs.args && expr == rhs.expr);
+        return (this == &rhs) || (name == rhs.name && args == rhs.args && expr == rhs.expr);
       }
     };
 
@@ -126,6 +125,4 @@ namespace kfl {
 
 } /* end namespace kfl */
 
-#include "Parser.icc"
-
-#endif /* __PARSER_H__ */
+#include "Parser.hpp"

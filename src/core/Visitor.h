@@ -4,20 +4,19 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#ifndef __EXPR_VISITOR_H__
-#define __EXPR_VISITOR_H__
+#pragma once
 
 #include "Expr.h"
 
 namespace kfl {
 
-  template<class T>
+  template<typename T>
   class Visitor {
   public:
     virtual ~Visitor() { }
-    void visit(const Program<T> & p) { visitProgram(p); }
-    void visit(const ScDefn<T> & d) { visitScDefn(d); }
-    void visit(const Expr<T> & e) { visitExpr(e); }
+    inline void visit(const Program<T> & p) { visitProgram(p); }
+    inline void visit(const ScDefn<T> & d) { visitScDefn(d); }
+    inline void visit(const Expr<T> & e) { visitExpr(e); }
   protected:
     virtual void visitProgram(const Program<T> & p) = 0;
     virtual void visitScDefn(const ScDefn<T> & d) = 0;
@@ -39,6 +38,18 @@ namespace kfl {
     friend class ELam<T>;
   };
 
-} /* end namespace kfl */
+  template<typename T>
+  class DefaultVisitor : public Visitor<T> {
+  protected:
+    void visitProgram(const Program<T> & p) override { }
+    void visitScDefn(const ScDefn<T> & d) override { }
+    void visitVar(const EVar<T> & e) override { }
+    void visitNum(const ENum<T> & e) override { }
+    void visitConstr(const EConstr<T> & e) override { }
+    void visitAp(const EAp<T> & e) override { }
+    void visitLet(const ELet<T> & e) override { }
+    void visitCase(const ECase<T> & e) override { }
+    void visitLam(const ELam<T> & e) override { }
+  };
 
-#endif /* __EXPR_VISITOR_H__ */
+} /* end namespace kfl */

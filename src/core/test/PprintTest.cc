@@ -4,223 +4,190 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#include <sstream>
-
-#include "gtest/gtest.h"
-#include "Expr.h"
 #include "Pprint.h"
 
-TEST(PprintTest, Var)
+#include "CoreExpr.h"
+
+#include <boost/test/unit_test.hpp>
+#include <sstream>
+
+using namespace kfl;
+using TestPprint = Pprint<std::string>;
+using TestPprintA = PprintA<std::string>;
+using std::make_shared;
+using std::make_unique;
+
+BOOST_AUTO_TEST_SUITE( PprintTest )
+
+BOOST_AUTO_TEST_CASE( EVar )
 {
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  const std::string cVarName = "name";
-  const TestVar e(cVarName);
+  TestPprint(output)
+    .visit(CoreVar("variable_name"));
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(e);
-  ASSERT_TRUE(oss.str() == cVarName);
+  BOOST_CHECK_EQUAL(output.str(), "variable_name");
 }
 
-TEST(PprintTest, Num)
+BOOST_AUTO_TEST_CASE( ENum )
 {
-  typedef kfl::ENum<std::string> TestNum;
+  std::ostringstream output;
+ 
+  TestPprint(output)
+    .visit(CoreNum(42));
 
-  const int cNum = 1;
-  const TestNum e(cNum);
-
-  const std::string cNumStr = "1";
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(e);
-  ASSERT_TRUE(oss.str() == cNumStr);
+  BOOST_CHECK_EQUAL(output.str(), "42");
 }
 
-TEST(PprintTest, Constr)
+BOOST_AUTO_TEST_CASE( EConstr )
 {
-  typedef kfl::EConstr<std::string> TestConstr;
-
+  std::ostringstream output;
   const int cTag = 1;
   const int cArity = 2;
-  const TestConstr e(cTag,cArity);
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(e);
-  const std::string constrpprint = "Pack{1,2}";
-  ASSERT_TRUE(oss.str() == constrpprint);
+  TestPprint(output)
+    .visit(CoreConstr(cTag,cArity));
+
+  BOOST_CHECK_EQUAL(output.str(), "Pack{1,2}");
 }
 
-TEST(PprintTest, Ap)
+BOOST_AUTO_TEST_CASE( EAp )
 {
-  typedef kfl::EAp<std::string> TestAp;
-  typedef kfl::ENum<std::string> TestNum;
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  const TestAp e(new TestVar("fn"), new TestNum(0));
+  TestPprint(output)
+    .visit(CoreAp(make_unique<CoreVar>("fn_name"),
+                  make_unique<CoreNum>(42)));
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(e);
-  ASSERT_TRUE(oss.str() == "fn 0");
+  BOOST_CHECK_EQUAL(output.str(), "fn_name 42");
 }
 
-TEST(PprintTest, Let)
+BOOST_AUTO_TEST_CASE( ELet )
 {
-  typedef kfl::ELet<std::string> TestLet;
-  typedef kfl::ENum<std::string> TestNum;
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  TestLet::Defn d1("x", new TestNum(0));
-  TestLet::Defn d2("y", new TestNum(1));
-  TestLet::DefnVec * defns = new TestLet::DefnVec();
+  CoreLet::Defn d1("x", new CoreNum(0));
+  CoreLet::Defn d2("y", new CoreNum(1));
+  auto defns = make_unique<CoreLet::DefnVec>();
   defns->push_back(d1);
   defns->push_back(d2);
-  const TestLet e(defns, new TestVar("x"));
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(e);
-  const std::string letpprint =
-    "let\n"
-    "  x = 0;\n"
-    "  y = 1\n"
-    "in x";
-  ASSERT_TRUE(oss.str() == letpprint);
+  TestPprint(output)
+    .visit(CoreLet(std::move(defns), make_unique<CoreVar>("x")));
+
+  BOOST_CHECK_EQUAL(output.str(),
+                    "let\n"
+                    "  x = 0;\n"
+                    "  y = 1\n"
+                    "in x");
 }
 
-TEST(PprintTest, testCase)
+BOOST_AUTO_TEST_CASE( ECase )
 {
-  typedef kfl::ECase<std::string> TestCase;
-  typedef kfl::ENum<std::string> TestNum;
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  TestCase::BndVec * binders1 = 0;
-  TestCase::Alter a1  = { new TestNum(1), binders1, new TestVar("x") };
-  TestCase::BndVec * binders2 = new TestCase::BndVec();
+  auto binders1 = make_shared<CoreCase::BndVec>();
+  CoreCase::Alter a1  = { make_shared<CoreNum>(1), binders1, make_shared<CoreVar>("x") };
+  auto binders2 = make_shared<CoreCase::BndVec>();
   binders2->push_back("y");
   binders2->push_back("z");
-  TestCase::Alter a2  = { new TestNum(2), binders2, new TestVar("y") };
-  TestCase::AlterVec * alters = new TestCase::AlterVec();
+  CoreCase::Alter a2  = { make_shared<CoreNum>(2), binders2, make_shared<CoreVar>("y") };
+  auto alters = make_shared<CoreCase::AlterVec>();
   alters->push_back(a1);
   alters->push_back(a2);
-  const TestCase e(new TestVar("x"), alters);
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(e);
-  const std::string casepprint =
-    "case x of\n"
-    "  <1> -> x;\n"
-    "  <2> y z -> y";
-  ASSERT_TRUE(oss.str() == casepprint);
+  TestPprint(output)
+    .visit(CoreCase(make_unique<CoreVar>("x"), alters));
+
+  BOOST_CHECK_EQUAL(output.str(),
+                    "case x of\n"
+                    "  <1> -> x;\n"
+                    "  <2> y z -> y");
 }
 
-TEST(PprintTest, Lam)
+BOOST_AUTO_TEST_CASE( ELam )
 {
-  typedef kfl::ELam<std::string> TestLam;
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  TestLam::BndVec * binders = new TestLam::BndVec();
+  auto binders = make_shared<CoreLam::BndVec>();
   binders->push_back("x");
   binders->push_back("y");
-  const TestLam e(binders, new TestVar("x"));
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(e);
-  const std::string lampprint = "\\ x y. x";
-  ASSERT_TRUE(oss.str() == lampprint);
+  TestPprint(output)
+    .visit(CoreLam(binders, make_unique<CoreVar>("x")));
+
+  BOOST_CHECK_EQUAL(output.str(), "\\ x y. x");
 }
 
-TEST(PprintTest, ScDefnWithoutArgs)
+BOOST_AUTO_TEST_CASE( ScDefnWithoutArgs )
 {
-  typedef kfl::ScDefn<std::string> TestScDefn;
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  TestScDefn defn("test", 0, new TestVar("x"));
+  TestPprint(output)
+    .visit(CoreScDefn("test", 0, make_unique<CoreVar>("x")));
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(defn);
-  ASSERT_TRUE(oss.str() == "test = x");
+  BOOST_CHECK_EQUAL(output.str(), "test = x");
 }
 
-TEST(PprintTest, ScDefnWithArgs)
+BOOST_AUTO_TEST_CASE( ScDefnWithArgs )
 {
-  typedef kfl::ScDefn<std::string> TestScDefn;
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  TestScDefn::BndVec * binders = new TestScDefn::BndVec();
+  auto binders = make_shared<CoreScDefn::BndVec>();
   binders->push_back("x");
   binders->push_back("y");
-  TestScDefn defn("test", binders, new TestVar("x"));
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(defn);
-  ASSERT_TRUE(oss.str() == "test x y = x");
+  TestPprint(output)
+    .visit(CoreScDefn("test", binders, make_unique<CoreVar>("x")));
+
+  BOOST_CHECK_EQUAL(output.str(), "test x y = x");
 }
 
-TEST(PprintTest, Program)
+BOOST_AUTO_TEST_CASE( Program )
 {
-  typedef kfl::Program<std::string> TestProgram;
-  typedef kfl::ScDefn<std::string> TestScDefn;
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  TestScDefn * defn1 = new TestScDefn("test1", 0, new TestVar("x"));
-  TestScDefn * defn2 = new TestScDefn("test2", 0, new TestVar("y"));
-  TestProgram::ScDefnVec * defns = new TestProgram::ScDefnVec();
+  auto defn1 = make_shared<CoreScDefn>("test1", nullptr, make_unique<CoreVar>("x"));
+  auto defn2 = make_shared<CoreScDefn>("test2", nullptr, make_unique<CoreVar>("y"));
+  auto defns = make_shared<CoreProgram::ScDefnVec>();
   defns->push_back(defn1);
   defns->push_back(defn2);
 
-  TestProgram program(defns);
+  TestPprint(output)
+    .visit(CoreProgram(defns));
 
-  std::ostringstream oss;
-  kfl::Pprint<std::string> pp(oss);
-  pp.visit(program);
-  const std::string programpprint =
-    "test1 = x;\n"
-    "test2 = y\n";
-  ASSERT_TRUE(oss.str() == programpprint);
+  BOOST_CHECK_EQUAL(output.str(),
+		    "test1 = x;\n"
+		    "test2 = y\n");
 }
 
-TEST(PprintTest, AtomicPprintA)
+BOOST_AUTO_TEST_CASE( AtomicPprintA )
 {
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  const std::string cVarName = "name";
-  const TestVar e(cVarName);
+  TestPprintA(output)
+    .visit(CoreVar("variable_name"));
 
-  std::ostringstream oss;
-  kfl::PprintA<std::string> pp(oss);
-  pp.visit(e);
-  ASSERT_TRUE(oss.str() == cVarName);
+  BOOST_CHECK_EQUAL(output.str(), "variable_name");
 }
 
-TEST(PprintTest, NonAtomicPprintA)
+BOOST_AUTO_TEST_CASE( NonAtomicPprintA )
 {
-  typedef kfl::EAp<std::string> TestAp;
-  typedef kfl::ENum<std::string> TestNum;
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
 
-  const TestAp e(new TestVar("fn"), new TestNum(0));
+  TestPprintA(output)
+    .visit(CoreAp(make_unique<CoreVar>("fn"),
+                  make_unique<CoreNum>(0)));
 
-  std::ostringstream oss;
-  kfl::PprintA<std::string> pp(oss);
-  pp.visit(e);
-  ASSERT_TRUE(oss.str() == "(fn 0)");
+  BOOST_CHECK_EQUAL(output.str(), "(fn 0)");
 }
 
-TEST(PprintTest, StreamOutOp)
+BOOST_AUTO_TEST_CASE( StreamOutOp )
 {
-  typedef kfl::EVar<std::string> TestVar;
+  std::ostringstream output;
+  output << CoreVar("variable_name");
 
-  const std::string cVarName = "name";
-  const TestVar e(cVarName);
-
-  std::ostringstream oss;
-  oss << e;
-  ASSERT_TRUE(oss.str() == cVarName);
+  BOOST_CHECK_EQUAL(output.str(), "variable_name");
 }
+
+BOOST_AUTO_TEST_SUITE_END()

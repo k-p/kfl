@@ -12,6 +12,13 @@
 *.la
 *.a
 
+#Compiled Binaries
+bin/*
+build/*
+
 # Emacs files
 BROWSE
 *~
+
+# VS Code
+*.code-workspace

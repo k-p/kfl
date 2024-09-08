@@ -4,214 +4,149 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#include <sstream>
-
-#include "boost/scoped_ptr.hpp"
-
-#include "gtest/gtest.h"
 #include "ExprFactory.h"
 
-TEST(ExprFactoryTest, Var)
-{
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::EVar<std::string> TestVar;
+#include "CoreExpr.h"
 
-  const std::string cVarName = "name";
-  TestExprFactory f;
-  boost::scoped_ptr<TestExpr> e(f.createVar(cVarName));
+#include <boost/test/unit_test.hpp>
 
-  TestVar * v;
-  ASSERT_TRUE(v = dynamic_cast<TestVar *>(e.get()));
-  ASSERT_TRUE(v->isAtomic());
-  ASSERT_TRUE(v->getId() == cVarName);
+using namespace kfl;
+using std::shared_ptr;
+
+namespace {
+  CoreFactory factory;
 }
 
-TEST(ExprFactoryTest, Num)
+BOOST_AUTO_TEST_SUITE( ExprFactoryTest )
+
+BOOST_AUTO_TEST_CASE( EVar )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::ENum<std::string> TestNum;
+  auto var = factory.createVar("variable_name");
 
-  const int cNum = 1;
-  TestExprFactory f;
-  boost::scoped_ptr<TestExpr> e(f.createNum(cNum));
-
-  TestNum * n;
-  ASSERT_TRUE(n = dynamic_cast<TestNum *>(e.get()));
-  ASSERT_TRUE(n->isAtomic());
-  ASSERT_TRUE(n->getNum() == cNum);
+  BOOST_CHECK_EQUAL(var->isAtomic(), true);
+  BOOST_CHECK_EQUAL(var->getId(), "variable_name");
 }
 
-TEST(ExprFactoryTest, Constr)
+BOOST_AUTO_TEST_CASE( ENum )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::EConstr<std::string> TestConstr;
+  auto num = factory.createNum(42);
 
+  BOOST_CHECK_EQUAL(num->isAtomic(), true);
+  BOOST_CHECK_EQUAL(num->getNum(), 42);
+}
+
+BOOST_AUTO_TEST_CASE( EConstr )
+{
   const int cTag = 1;
   const int cArity = 2;
-  TestExprFactory f;
-  boost::scoped_ptr<TestExpr> e(f.createConstr(cTag,cArity));
+  auto constr = factory.createConstr(cTag, cArity);
 
-  TestConstr * c;
-  ASSERT_TRUE(c = dynamic_cast<TestConstr *>(e.get()));
-  ASSERT_TRUE(!c->isAtomic());
-  ASSERT_TRUE(c->getTag() == cTag);
-  ASSERT_TRUE(c->getArity() == cArity);
+  BOOST_CHECK_EQUAL(constr->isAtomic(), false);
+  BOOST_CHECK_EQUAL(constr->getTag(), cTag);
+  BOOST_CHECK_EQUAL(constr->getArity(), cArity);
 }
 
-TEST(ExprFactoryTest, Ap)
+BOOST_AUTO_TEST_CASE( EAp )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::EAp<std::string> TestAp;
+  shared_ptr<CoreExpr> fn = factory.createVar("fn");
+  shared_ptr<CoreExpr> arg = factory.createNum(0);
+  auto ap = factory.createAp(fn, arg);
 
-  TestExprFactory f;
-  TestExpr * fn = f.createVar("fn");
-  TestExpr * arg = f.createNum(0);
-  boost::scoped_ptr<TestExpr> e(f.createAp(fn, arg));
-
-  TestAp * a;
-  ASSERT_TRUE(a = dynamic_cast<TestAp *>(e.get()));
-  ASSERT_TRUE(!a->isAtomic());
-  ASSERT_TRUE(a->getFn() == *fn);
-  ASSERT_TRUE(a->getArg() == *arg);
+  BOOST_CHECK_EQUAL(ap->isAtomic(), false);
+  BOOST_CHECK_EQUAL(&ap->getFn(), fn.get());
+  BOOST_CHECK_EQUAL(&ap->getArg(), arg.get());
 }
 
-TEST(ExprFactoryTest, Let)
+BOOST_AUTO_TEST_CASE( ELet )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::ELet<std::string> TestLet;
+  shared_ptr<CoreFactory::DefnVec> defns = factory.createDefns();
+  factory.addDefn(*defns, "x", factory.createNum(0));
+  factory.addDefn(*defns, "y", factory.createNum(1));
+  shared_ptr<CoreExpr> body = factory.createVar("x");
+  auto let = factory.createLet(defns, body);
 
-  TestExprFactory f;
-  TestExprFactory::DefnVec * defns = f.createDefns();
-  f.addDefn(defns, "x", f.createNum(0));
-  f.addDefn(defns, "y", f.createNum(1));
-  TestExpr * body = f.createVar("x");
-  boost::scoped_ptr<TestExpr> e(f.createLet(defns, body));
-
-  TestLet * l;
-  ASSERT_TRUE(l = dynamic_cast<TestLet *>(e.get()));
-  ASSERT_TRUE(!l->isAtomic());
-  ASSERT_TRUE(!l->isRec());
-  ASSERT_TRUE(&l->getDefns() == defns);
-  ASSERT_TRUE(&l->getBody() == body);
+  BOOST_CHECK_EQUAL(let->isAtomic(), false);
+  BOOST_CHECK_EQUAL(let->isRec(), false);
+  BOOST_CHECK_EQUAL(&let->getDefns(), defns.get());
+  BOOST_CHECK_EQUAL(&let->getBody(), body.get());
 }
 
-TEST(ExprFactoryTest, LetRec)
+BOOST_AUTO_TEST_CASE( ELetRec )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::ELet<std::string> TestLet;
+  shared_ptr<CoreFactory::DefnVec> defns = factory.createDefns();
+  factory.addDefn(*defns, "x", factory.createVar("y"));
+  factory.addDefn(*defns, "y", factory.createVar("x"));
+  shared_ptr<CoreExpr> body = factory.createVar("x");
+  auto letrec = factory.createLetRec(defns, body);
 
-  TestExprFactory f;
-  TestExprFactory::DefnVec * defns = f.createDefns();
-  f.addDefn(defns, "x", f.createVar("y"));
-  f.addDefn(defns, "y", f.createVar("x"));
-  TestExpr * body = f.createVar("x");
-  boost::scoped_ptr<TestExpr> e(f.createLetRec(defns, body));
-
-  TestLet * l;
-  ASSERT_TRUE(l = dynamic_cast<TestLet *>(e.get()));
-  ASSERT_TRUE(!l->isAtomic());
-  ASSERT_TRUE(l->isRec());
-  ASSERT_TRUE(&l->getDefns() == defns);
-  ASSERT_TRUE(&l->getBody() == body);
+  BOOST_CHECK_EQUAL(letrec->isAtomic(), false);
+  BOOST_CHECK_EQUAL(letrec->isRec(), true);
+  BOOST_CHECK_EQUAL(&letrec->getDefns(), defns.get());
+  BOOST_CHECK_EQUAL(&letrec->getBody(), body.get());
 }
 
-TEST(ExprFactoryTest, Case)
+BOOST_AUTO_TEST_CASE( ECase )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::ENum<std::string> TestNum;
-  typedef kfl::ECase<std::string> TestCase;
+  shared_ptr<CoreFactory::AlterVec> alters = factory.createAlters();
+  factory.addAlter(*alters, factory.createNum(1), nullptr, factory.createVar("x"));
+  shared_ptr<CoreFactory::BndVec> bnds = factory.createBnds();
+  factory.addBnd(*bnds, "y");
+  factory.addBnd(*bnds, "z");
+  factory.addAlter(*alters, factory.createNum(2), bnds, factory.createVar("y"));
+  shared_ptr<CoreExpr> expr = factory.createVar("x");
+  auto case_ = factory.createCase(expr, alters);
 
-  TestExprFactory f;
-  TestExprFactory::AlterVec * alters = f.createAlters();
-  f.addAlter(alters, new TestNum(1), 0, f.createVar("x"));
-  TestExprFactory::BndVec * bnds = f.createBnds();
-  f.addBnd(bnds, "y");
-  f.addBnd(bnds, "z");
-  f.addAlter(alters, new TestNum(2), bnds, f.createVar("y"));
-  TestExpr * expr = f.createVar("x");
-  boost::scoped_ptr<TestExpr> e(f.createCase(expr, alters));
-
-  TestCase * c;
-  ASSERT_TRUE(c = dynamic_cast<TestCase *>(e.get()));
-  ASSERT_TRUE(!c->isAtomic());
-  ASSERT_TRUE(&c->getExpr() == expr);
-  ASSERT_TRUE(&c->getAlters() == alters);
+  BOOST_CHECK_EQUAL(case_->isAtomic(), false);
+  BOOST_CHECK_EQUAL(&case_->getExpr(), expr.get());
+  BOOST_CHECK_EQUAL(&case_->getAlters(), alters.get());
 }
 
-TEST(ExprFactoryTest, Lambda)
+BOOST_AUTO_TEST_CASE( ELambda )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::ELam<std::string> TestLam;
+  shared_ptr<CoreFactory::BndVec> bnds = factory.createBnds();
+  factory.addBnd(*bnds, "x");
+  factory.addBnd(*bnds, "y");
+  shared_ptr<CoreExpr> body = factory.createVar("x");
+  auto lambda = factory.createLambda(bnds, body);
 
-  TestExprFactory f;
-  TestExprFactory::BndVec * bnds = f.createBnds();
-  f.addBnd(bnds, "x");
-  f.addBnd(bnds, "y");
-  TestExpr * body = f.createVar("x");
-  boost::scoped_ptr<TestExpr> e(f.createLambda(bnds, body));
-
-  TestLam * l;
-  ASSERT_TRUE(l = dynamic_cast<TestLam *>(e.get()));
-  ASSERT_TRUE(!l->isAtomic());
-  ASSERT_TRUE(&l->getBinders() == bnds);
-  ASSERT_TRUE(&l->getBody() == body);
+  BOOST_CHECK_EQUAL(lambda->isAtomic(), false);
+  BOOST_CHECK_EQUAL(&lambda->getBinders(), bnds.get());
+  BOOST_CHECK_EQUAL(&lambda->getBody(), body.get());
 }
 
-TEST(ExprFactoryTest, ScDefnWithoutArgs)
+BOOST_AUTO_TEST_CASE( ScDefnWithoutArgs )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::ScDefn<std::string> TestScDefn;
-
-  TestExprFactory f;
   const std::string name("test");
-  TestExpr * body = f.createVar("x");
-  boost::scoped_ptr<TestScDefn> defn(f.createScDefn(name, 0, body));
+  shared_ptr<CoreExpr> body = factory.createVar("x");
+  auto defn = factory.createScDefn(name, nullptr, body);
 
-  ASSERT_TRUE(defn->getName() == name);
-  ASSERT_TRUE(defn->getBinders() == 0);
-  ASSERT_TRUE(&defn->getBody() == body);
+  BOOST_CHECK_EQUAL(defn->getName(), name);
+  BOOST_CHECK_EQUAL(defn->getBinders(), nullptr);
+  BOOST_CHECK_EQUAL(&defn->getBody(), body.get());
 }
 
-TEST(ExprFactoryTest, ScDefnWithArgs)
+BOOST_AUTO_TEST_CASE( ScDefnWithArgs )
 {
-  typedef kfl::Expr<std::string> TestExpr;
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::ScDefn<std::string> TestScDefn;
-
-  TestExprFactory f;
   const std::string name("test");
-  TestExprFactory::BndVec * bnds = f.createBnds();
-  f.addBnd(bnds, "x");
-  f.addBnd(bnds, "y");
-  TestExpr * body = f.createVar("x");
-  boost::scoped_ptr<TestScDefn> defn(f.createScDefn(name, bnds, body));
+  shared_ptr<CoreFactory::BndVec> bnds = factory.createBnds();
+  factory.addBnd(*bnds, "x");
+  factory.addBnd(*bnds, "y");
+  shared_ptr<CoreExpr> body = factory.createVar("x");
+  auto defn = factory.createScDefn(name, bnds, body);
 
-  ASSERT_TRUE(defn->getName() == name);
-  ASSERT_TRUE(defn->getBinders() == bnds);
-  ASSERT_TRUE(&defn->getBody() == body);
+  BOOST_CHECK_EQUAL(defn->getName(), name);
+  BOOST_CHECK_EQUAL(defn->getBinders(), bnds.get());
+  BOOST_CHECK_EQUAL(&defn->getBody(), body.get());
 }
 
-TEST(ExprFactoryTest, Program)
+BOOST_AUTO_TEST_CASE( Program )
 {
-  typedef kfl::ExprFactory<std::string> TestExprFactory;
-  typedef kfl::Program<std::string> TestProgram;
-  typedef kfl::ScDefn<std::string> TestScDefn;
-  typedef kfl::EVar<std::string> TestVar;
+  std::shared_ptr<CoreFactory::ScDefnVec> defns = factory.createScDefns();
+  factory.addScDefn(*defns, "test1", nullptr, factory.createVar("x"));
+  factory.addScDefn(*defns, "test2", nullptr, factory.createVar("y"));
+  auto program = factory.createProgram(defns);
 
-  TestExprFactory f;
-  TestExprFactory::ScDefnVec * defns = f.createScDefns();
-  f.addScDefn(defns, "test1", 0, new TestVar("x"));
-  f.addScDefn(defns, "test2", 0, new TestVar("y"));
-  boost::scoped_ptr<TestProgram> program(f.createProgram(defns));
-
-  ASSERT_TRUE(&program->getDefns() == defns);
+  BOOST_CHECK_EQUAL(&program->getDefns(), defns.get());
 }
+
+BOOST_AUTO_TEST_SUITE_END()

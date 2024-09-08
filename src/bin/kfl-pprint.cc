@@ -4,15 +4,13 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#include <iostream>
-#include <iterator>
-#include <string>
-
-#include "boost/scoped_ptr.hpp"
-
 #include "CoreExprBuilder.h"
 #include "Parser.h"
 #include "Pprint.h"
+
+#include <iostream>
+#include <iterator>
+#include <string>
 
 int main()
 {
@@ -27,17 +25,17 @@ int main()
 
   AstProgram ast;
   if (parseProgram(storage.begin(), storage.end(), ast)) {
-
-    CoreExprFactory factory;
+    CoreFactory factory;
     CoreProgramBuilder builder(factory);
-    boost::scoped_ptr<CoreProgram> p(builder(ast));
+    auto p = builder(ast);
 
-    Pprint<CoreId> pprint(std::cout);
-    pprint.visit(*p);
+    Pprint<CoreId> pprinter(std::cout);
+    pprinter.visit(*p);
   }
   else {
     std::cerr << "Parsing error\n";
+    return EXIT_FAILURE;
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }

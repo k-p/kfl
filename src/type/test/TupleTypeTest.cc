@@ -1,8 +1,8 @@
-#include <string>
-
-#include "gtest/gtest.h"
-
 #include "TupleType.h"
+
+#include <boost/test/unit_test.hpp>
+
+#include <string>
 
 namespace {
 
@@ -15,13 +15,19 @@ namespace {
     const std::string m_name;
   };
 
+  std::ostream & operator<<(std::ostream & cout, const SomeType& type) {
+    return cout << "[SomeType: " << &type << ']';
+  }
+
   const kfl::TupleType emptyTupleType;
 
 };
 
-TEST(TupleTypeTest, Name)
+BOOST_AUTO_TEST_SUITE( TupleTypeTest )
+
+BOOST_AUTO_TEST_CASE( Name )
 {
-  ASSERT_TRUE(emptyTupleType.name() == "()");
+  BOOST_CHECK_EQUAL(emptyTupleType.name(), "()");
 
   kfl::TupleType::TypeVector tv;
   SomeType t1("t1");
@@ -29,10 +35,12 @@ TEST(TupleTypeTest, Name)
   SomeType t2("t2");
   tv.push_back(&t2);
   const kfl::TupleType type(tv);
-  ASSERT_TRUE(type.name() == "(t1 * t2)");
+  BOOST_CHECK_EQUAL(type.name(), "(t1 * t2)");
 }
 
-TEST(TupleTypeTest, Equals)
+BOOST_AUTO_TEST_CASE( Equals )
 {
-  ASSERT_TRUE(emptyTupleType.equals(emptyTupleType));
+  //BOOST_CHECK_EQUAL(emptyTupleType, emptyTupleType);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

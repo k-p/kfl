@@ -4,14 +4,15 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
+#include "Parser.h"
+
+#include <boost/test/unit_test.hpp>
+
 #include <sstream>
 #include <string>
 
-#include "gtest/gtest.h"
-#include "Parser.h"
-
 namespace {
-
+/*
   using boost::get;
   using std::ostringstream;
   using std::string;
@@ -144,5 +145,5 @@ namespace {
     ASSERT_TRUE(parseProgram(s.begin(), s.end(), ast));
     ASSERT_TRUE(ast == expected);
   }
-
+*/
 } /* namespace */

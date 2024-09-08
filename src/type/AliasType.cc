@@ -7,7 +7,7 @@ kfl::AliasType::AliasType(const std::string & name, const Type & type)
 
 bool kfl::AliasType::equals(const Type & other) const
 {
-  return (static_cast<const Type*>(this) == &other) || m_type.equals(other);
+  return super::equals(other) || (type() == other);
 }
 
 const kfl::Type & kfl::AliasType::type() const

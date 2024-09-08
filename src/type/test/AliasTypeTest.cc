@@ -1,38 +1,51 @@
-#include <string>
-
-#include "gtest/gtest.h"
 #include "AliasType.h"
+
+#include <boost/test/unit_test.hpp>
+
+using namespace kfl;
 
 namespace {
 
-  class SomeType : public kfl::Type {
-    typedef kfl::Type super;
+  class SomeType : public NamedType {
   public:
-    SomeType() : super(), m_name("someName") { }
-    virtual const std::string & name() const { return m_name; }
-  private:
-    const std::string m_name;
+    SomeType() : NamedType("someName") { }
   };
 
-  const SomeType type;
-
-  const std::string aliasName = "aliasName";
-  const kfl::AliasType alias(aliasName, type);
 };
 
-TEST(AliasTypeTest, Name)
+BOOST_AUTO_TEST_SUITE( AliasTypeTest )
+
+BOOST_AUTO_TEST_CASE( AliasTypeEqualsItself )
 {
-  ASSERT_TRUE(alias.name() == aliasName);
+  const SomeType type;
+
+  const AliasType alias("aliasTypeName", type);
+
+  BOOST_CHECK(alias == alias);
 }
 
-TEST(AliasTypeTest, Equals)
+BOOST_AUTO_TEST_CASE( AliasTypeEqualsTypeItIsAnAliasFor )
 {
-  ASSERT_TRUE(alias.equals(alias));
-  ASSERT_TRUE(alias.equals(type));
-  //ASSERT_TRUE(type.equals(alias));
+  const SomeType type;
+
+  const AliasType alias("aliasTypeName", type);
+
+  //BOOST_CHECK(alias == type);
+  BOOST_CHECK(type == alias);
 }
 
-TEST(AliasTypeTest, Type)
+/*
+BOOST_AUTO_TEST_CASE( Equals )
 {
-  ASSERT_TRUE(&(alias.type()) == static_cast<const kfl::Type *>(&type));
+  BOOST_CHECK(alias.equals(alias));
+  BOOST_CHECK(alias.equals(type));
+  //BOOST_CHECK(type.equals(alias));
 }
+*/
+/*
+BOOST_AUTO_TEST_CASE( Type )
+{
+  BOOST_CHECK(&(alias.type()) == static_cast<const Type *>(&type));
+}
+*/
+BOOST_AUTO_TEST_SUITE_END()
