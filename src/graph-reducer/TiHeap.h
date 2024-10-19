@@ -8,7 +8,9 @@
 
 #include "Heap.h"
 
+#include <exception>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace kfl {
@@ -23,6 +25,7 @@ namespace kfl {
     public:
       virtual TiState dispatch(TiState state) const = 0;
       virtual bool isDataNode() const { return false; }
+      virtual Addr getArg() const { throw std::runtime_error("Tried to get arg of node that is not an application"); }
     };
 
     Addr allocAp(Addr fn, Addr arg) override;
@@ -34,6 +37,13 @@ namespace kfl {
   private:
     using TiNodeHeap = std::vector<std::shared_ptr<TiNode>>;
     TiNodeHeap heap_;
+
+    template<typename T, typename... Args>
+    inline Addr allocate(Args&&... args)
+    {
+      heap_.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
+      return Addr(heap_.size() - 1);
+    }
   };
 
 } /* end namespace kfl */

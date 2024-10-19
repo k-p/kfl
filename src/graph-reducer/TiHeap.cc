@@ -4,45 +4,77 @@
 #include "TiHeap.h"
 #include "TiState.h"
 
+#include <algorithm>
+#include <iterator>
 #include <exception>
-#include <utility>
 
 namespace {
 
   using namespace kfl;
-  using TiNode = TiHeap::TiNode;
-  using TiNodeHeap = std::vector<std::shared_ptr<TiNode>>;
-  using Name = TiHeap::Name;
   using ArgList = TiHeap::ArgList;
+  using Name = TiHeap::Name;
+  using TiNode = TiHeap::TiNode;
   
   class Instantiate : private CoreDefaultVisitor
   {
     Heap& heap_;
+    const TiGlobals& env_;
     Addr addr_ = 0;
+
+    void visitVar(const CoreVar& e) override
+    {
+      const auto itr = env_.find(e.getId());
+      if (itr == env_.end()) {
+        throw std::runtime_error("Undefined name " + e.getId());
+      }
+      addr_ = itr->second;
+    }
 
     void visitNum(const CoreNum& e) override
     {
       addr_ = heap_.allocNum(e.getNum());
     }
 
+    void visitConstr(const CoreConstr& e) override
+    { 
+      throw std::runtime_error("Can't instantiate constructors yet");
+    }
+
     void visitAp(const CoreAp& e) override
     {
-      addr_ = heap_.allocAp(Instantiate(heap_)(e.getFn()),
-                            Instantiate(heap_)(e.getArg()));
+      addr_ = heap_.allocAp(Instantiate(heap_, env_)(e.getFn()),
+                            Instantiate(heap_, env_)(e.getArg()));
+    }
+
+    void visitLet(const CoreLet& e) override
+    {
+      throw std::runtime_error("Can't instantiate let(rec)s yet");
+    }
+
+    void visitCase(const CoreCase& e) override
+    {
+      throw std::runtime_error("Can't instantiate case exprs");
     }
 
   public:
-    Instantiate(Heap& heap) : heap_(heap) { }
+    Instantiate(Heap& heap, const TiGlobals& env) : heap_(heap), env_(env) { }
     Addr operator()(const CoreExpr& e) { e.visit(*this); return addr_; }
   };
 
   class NNum : public TiNode {
     public:
       NNum(int n) : num_(n) { }
+
+      void print(std::ostream& os) const override {
+        os << "NNum " << num_;
+      }
+
       TiState dispatch(TiState state) const override {
         throw std::runtime_error("Number applied as function");
       }
+
       bool isDataNode() const override { return true; }
+
     private:
       int num_;
     };
@@ -50,11 +82,20 @@ namespace {
   class NAp : public TiNode {
     public:
       NAp(Addr fn, Addr arg) : fn_(fn), arg_(arg) { }
-      TiState dispatch(TiState state) const override {
-        TiState newState(state);
-        newState.stack.push_back(fn_);
-        return newState;
+
+      void print(std::ostream& os) const override {
+        os << "NAp " << fn_ << ' ' << arg_;
       }
+
+      TiState dispatch(TiState state) const override {
+        state.stack.push_back(fn_);
+        return state;
+      }
+
+      Addr getArg() const {
+        return arg_;
+      }
+
     private:
       const Addr fn_;
       const Addr arg_;
@@ -64,43 +105,54 @@ namespace {
     public:
       NSupercomb(const Name& name, const ArgList& args, const CoreExpr& body)
         : name_(name), args_(args), body_(body) { }
+
+      void print(std::ostream& os) const override {
+        os << "NSupercomb " << name_;
+      }
+
       TiState dispatch(TiState state) const override {
-        const auto addr = Instantiate(state.heap)(body_);
-        state.stack[0] = addr;
-        //state.stack.erase(0, args_.size());
+        const TiStack values = getArgs(state.heap, state.stack);
+        std::map<Name, Addr> env(state.globals);
+        std::transform(args_.begin(), args_.end(), values.begin(), std::inserter(env, env.end()),
+                        [](const Name& name, const Addr value) { return std::make_pair(name, value); });
+        state.stack.erase(state.stack.end() - args_.size() - 1, state.stack.end());
+        state.stack.push_back(Instantiate(state.heap, env)(body_));
         return state;
       }
+
     private:
-      const Name& name_;
-      const ArgList& args_;
+      TiStack getArgs(const TiHeap& heap, const TiStack& stack) const {
+        TiStack args;
+        std::transform(stack.begin() + 1, stack.end(), std::back_inserter(args),
+                        [&](const Addr addr){
+                          return heap.lookup(addr).getArg();
+                        });
+        return args;
+      }
+
+      const Name name_;
+      const ArgList args_;
       const CoreExpr& body_;
     };
-
-  template<typename T, typename... Args>
-  Addr allocate(TiNodeHeap& heap, Args&&... args)
-  {
-    heap.push_back(std::make_shared<T>(std::forward<Args>(args)...));
-    return heap.size()-1;
-  }
 
 }
 
 Addr
 TiHeap::allocAp(const Addr fn, const Addr arg)
 {
-  return allocate<NAp>(heap_, fn, arg);
+  return allocate<NAp>(fn, arg);
 }
 
 Addr
 TiHeap::allocNum(const int n)
 {
-  return allocate<NNum>(heap_, n);
+  return allocate<NNum>(n);
 }
 
 Addr
 TiHeap::allocSupercomb(const Name& name, const std::vector<Name>& args, const CoreExpr& body)
 {
-  return allocate<NSupercomb>(heap_, name, args, body);
+  return allocate<NSupercomb>(name, args, body);
 }
 
 const TiNode&

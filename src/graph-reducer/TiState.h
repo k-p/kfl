@@ -9,6 +9,10 @@
 #include "TiStack.h"
 #include "TiStats.h"
 
+#include <algorithm>
+#include <iostream>
+#include <iterator>
+
 namespace kfl {
 
   template<typename Stack, typename Dump, typename Heap, typename Globals, typename Stats>
@@ -36,6 +40,15 @@ namespace kfl {
   {
     return state.stack.size() == 1
       && state.heap.lookup(state.stack.back()).isDataNode();
+  }
+
+  inline std::ostream& operator<<(std::ostream& os, const TiState& state) {
+    return os << state.stack << std::endl;
+  }
+
+  inline std::ostream& operator<<(std::ostream& os, const std::vector<TiState>& states) {
+    std::copy(states.cbegin(), states.cend(), std::ostream_iterator<TiState>(os, "\n"));
+    return os;
   }
 
 } /* end namespace kfl */

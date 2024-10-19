@@ -46,9 +46,9 @@ namespace kfl {
     virtual void visitExpr(const Expr<T> & e);
   };
 
-} /* end namespace kfl */
+  template<class T>
+  std::ostream & operator<<(std::ostream & os, const Expr<T> & expr);
 
-template<class T>
-std::ostream & operator<<(std::ostream & os, const kfl::Expr<T> & expr);
+} /* end namespace kfl */
 
 #include "Pprint.hpp"

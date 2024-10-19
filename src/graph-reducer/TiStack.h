@@ -1,17 +1,24 @@
 /* @(#)TiStack.h
  */
 
-#ifndef __TISTACK_H__
-#define __TISTACK_H__
+#pragma once
 
 #include "TiTypes.h"
 
+#include <algorithm>
+#include <iostream>
+#include <iterator>
 #include <vector>
 
 namespace kfl {
 
   using TiStack = std::vector<Addr>;
 
-} /* end namespace kfl */
+  inline std::ostream& operator<<(std::ostream& os, const TiStack& stack) {
+    os << "Stck [";
+    std::copy(stack.cbegin(), stack.cend(), std::ostream_iterator<Addr>(os, ", "));
+    os << ']';
+    return os;
+  }
 
-#endif /* __TISTACK_H__ */
+} /* end namespace kfl */

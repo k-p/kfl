@@ -169,14 +169,6 @@ void kfl::Pprint<T>::visitLam(const ELam<T> & e)
 }
 
 template<class T>
-std::ostream & operator<<(std::ostream & os, const kfl::Expr<T> & e)
-{
-  kfl::Pprint<T> pp (os);
-  pp.visit(e);
-  return os;
-}
-
-template<class T>
 kfl::PprintA<T>::PprintA(std::ostream & os)
   : super(os)
 {
@@ -198,4 +190,12 @@ void kfl::PprintA<T>::visitExpr(const Expr<T> & e)
   if (!atomic) {
     super::m_os << ')';
   }
+}
+
+template<class T>
+std::ostream & kfl::operator<<(std::ostream & os, const Expr<T> & e)
+{
+  kfl::Pprint<T> pp (os);
+  pp.visit(e);
+  return os;
 }

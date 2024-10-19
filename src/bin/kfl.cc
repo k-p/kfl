@@ -8,6 +8,7 @@
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <vector>
 
 using namespace kfl;
 using namespace kfl::Parser;
@@ -32,7 +33,8 @@ namespace {
   {
     auto [heap, globals] = acc;
     const auto name = defn->getName();
-    globals[name] = heap.allocSupercomb(name, *defn->getBinders(), defn->getBody());
+    const auto binders = defn->getBinders();
+    globals[name] = heap.allocSupercomb(name, (binders ? *binders : std::vector<Name>()), defn->getBody());
     return std::tuple(heap, globals);
   }
 
@@ -55,13 +57,19 @@ namespace {
     return TiState(initial_stack, TiDump(), heap, globals, TiStats());
   }
 
+  TiState applyToStats(TiState state)
+  {
+    state.stats.incSteps();
+    return state;
+  }
+
   TiState step(const TiState& state)
   {
     if (state.stack.empty()) {
       throw std::runtime_error("Stack empty");
     }
 
-    return state.heap.lookup(state.stack.back()).dispatch(state);
+    return applyToStats(state.heap.lookup(state.stack.back()).dispatch(state));
   }
 
 }
@@ -76,10 +84,22 @@ int main()
               std::back_inserter(storage));
 
     auto p = parse(storage.begin(), storage.end());
-    auto s = compile(*p);
 
     Pprint<CoreId> pprint(std::cout);
     pprint.visit(*p);
+    std::cout << std::endl;
+
+    auto s = compile(*p);
+
+    std::vector<TiState> states;
+    while (!tiFinal(s)) {
+      std::cout << s << std::endl;
+      s = step(s);
+      states.push_back(s);
+    }
+
+    std::cout << std::endl << "Trace:" << std::endl << states << std::endl;
+
   }
   catch (const std::exception& e) {
     std::cerr << "ERROR: " << e.what() << '.' << std::endl;

@@ -5,6 +5,7 @@
 
 #include "CoreExpr.h"
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@ namespace kfl {
     {
     public:
       virtual ~Node() { }
+      virtual void print(std::ostream& os) const = 0;
     };
 
     virtual Addr allocAp(Addr fn, Addr arg) = 0;
@@ -34,5 +36,10 @@ namespace kfl {
     virtual const Node& lookup(Addr addr) const = 0;
 
   };
+
+  inline std::ostream& operator<<(std::ostream& os, const Heap::Node& node) {
+    node.print(os);
+    return os;
+  }
 
 }
