@@ -112,6 +112,10 @@ namespace {
 
       TiState dispatch(TiState state) const override {
         const TiStack values = getArgs(state.heap, state.stack);
+        if (values.size() < args_.size()) {
+          throw std::runtime_error("Not enough arguments to apply supercombinator '" + name_ + "'. "
+          + std::to_string(args_.size()) + " required, but only " + std::to_string(values.size()) + " supplied");
+        }
         std::map<Name, Addr> env(state.globals);
         std::transform(args_.begin(), args_.end(), values.rbegin(), std::inserter(env, env.end()),
                         [](const Name& name, const Addr value) { return std::make_pair(name, value); });
