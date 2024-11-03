@@ -43,7 +43,8 @@ namespace kfl {
   }
 
   inline std::ostream& operator<<(std::ostream& os, const TiState& state) {
-    return os << state.stack << std::endl;
+    return state.stack.print(os, state.heap) << std::endl;
+    //return os << state.stack << std::endl;
   }
 
   inline std::ostream& operator<<(std::ostream& os, const std::vector<TiState>& states) {

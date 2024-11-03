@@ -52,7 +52,8 @@ namespace {
       throw std::runtime_error("main is not defined");
     }
 
-    TiStack initial_stack = {address_of_main->second};
+    TiStack initial_stack(&heap);
+    initial_stack.push_back(address_of_main->second);
 
     return TiState(initial_stack, TiDump(), heap, globals, TiStats());
   }
@@ -91,9 +92,10 @@ int main()
 
     auto s = compile(*p);
 
-    std::vector<TiState> states;
+    std::vector<TiState> states = {s};
     while (!tiFinal(s)) {
-      std::cout << s << std::endl;
+      //std::cout << s << std::endl;
+      //s.heap.print(std::cout);
       s = step(s);
       states.push_back(s);
     }

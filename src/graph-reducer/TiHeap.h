@@ -34,6 +34,14 @@ namespace kfl {
 
     const TiNode& lookup(Addr addr) const override;
 
+    void print(std::ostream& os) const {
+      os << "Heap: " << std::endl;
+      for (auto a = 0; a < heap_.size(); ++a) {
+        os << "  " << a << ": " << lookup(a) << std::endl;
+      }
+      os << std::endl;
+    }
+
   private:
     using TiNodeHeap = std::vector<std::shared_ptr<TiNode>>;
     TiNodeHeap heap_;

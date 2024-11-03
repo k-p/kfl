@@ -113,7 +113,7 @@ namespace {
       TiState dispatch(TiState state) const override {
         const TiStack values = getArgs(state.heap, state.stack);
         std::map<Name, Addr> env(state.globals);
-        std::transform(args_.begin(), args_.end(), values.begin(), std::inserter(env, env.end()),
+        std::transform(args_.begin(), args_.end(), values.rbegin(), std::inserter(env, env.end()),
                         [](const Name& name, const Addr value) { return std::make_pair(name, value); });
         state.stack.erase(state.stack.end() - args_.size() - 1, state.stack.end());
         state.stack.push_back(Instantiate(state.heap, env)(body_));
@@ -122,8 +122,8 @@ namespace {
 
     private:
       TiStack getArgs(const TiHeap& heap, const TiStack& stack) const {
-        TiStack args;
-        std::transform(stack.begin() + 1, stack.end(), std::back_inserter(args),
+        TiStack args(&heap);
+        std::transform(stack.cbegin(), stack.cend() - 1, std::back_inserter(args),
                         [&](const Addr addr){
                           return heap.lookup(addr).getArg();
                         });
