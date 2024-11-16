@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "TiTypes.h"
+#include "TiHeap.h"
 
 #include <algorithm>
 #include <iostream>
@@ -12,10 +12,10 @@
 
 namespace kfl {
 
-  class TiHeap;
-
-  class TiStack : private std::vector<Addr> {
+  class TiStack : private std::vector<TiHeap::Addr> {
   public:
+    using Addr = TiHeap::Addr;
+
     inline explicit TiStack(const TiHeap* heap)
       : std::vector<Addr>(), m_heap(heap) { }
 

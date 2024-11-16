@@ -1,17 +1,14 @@
 /* @(#)TiGlobals.h
  */
 
-#ifndef __TIGLOBALS_H__
-#define __TIGLOBALS_H__
+#pragma once
 
-#include "TiTypes.h"
+#include "TiHeap.h"
 
 #include <map>
 
 namespace kfl {
 
-  using TiGlobals = std::map<Name, Addr>;
+  using TiGlobals = std::map<TiHeap::Name, TiHeap::Addr>;
 
 } /* end namespace kfl */
-
-#endif /* __TIGLOBALS_H__ */

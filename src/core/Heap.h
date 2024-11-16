@@ -24,6 +24,7 @@ namespace kfl {
     class Node
     {
     public:
+      using Addr = Heap::Addr;
       virtual ~Node() { }
       virtual void print(std::ostream& os) const = 0;
     };
@@ -31,10 +32,9 @@ namespace kfl {
     virtual Addr allocAp(Addr fn, Addr arg) = 0;
     virtual Addr allocNum(int) = 0;
     virtual Addr allocSupercomb(const Name& name, const ArgList& args,
-                                   const CoreExpr& body) = 0;
+                                const CoreExpr& body) = 0;
 
     virtual const Node& lookup(Addr addr) const = 0;
-
   };
 
   inline std::ostream& operator<<(std::ostream& os, const Heap::Node& node) {

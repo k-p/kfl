@@ -17,9 +17,9 @@ namespace {
   
   class Instantiate : private CoreDefaultVisitor
   {
-    Heap& heap_;
+    TiHeap& heap_;
     const TiGlobals& env_;
-    Addr addr_ = 0;
+    TiHeap::Addr addr_ = 0;
 
     void visitVar(const CoreVar& e) override
     {
@@ -57,8 +57,8 @@ namespace {
     }
 
   public:
-    Instantiate(Heap& heap, const TiGlobals& env) : heap_(heap), env_(env) { }
-    Addr operator()(const CoreExpr& e) { e.visit(*this); return addr_; }
+    Instantiate(TiHeap& heap, const TiGlobals& env) : heap_(heap), env_(env) { }
+    TiHeap::Addr operator()(const CoreExpr& e) { e.visit(*this); return addr_; }
   };
 
   class NNum : public TiNode {
@@ -141,19 +141,19 @@ namespace {
 
 }
 
-Addr
+TiHeap::Addr
 TiHeap::allocAp(const Addr fn, const Addr arg)
 {
   return allocate<NAp>(fn, arg);
 }
 
-Addr
+TiHeap::Addr
 TiHeap::allocNum(const int n)
 {
   return allocate<NNum>(n);
 }
 
-Addr
+TiHeap::Addr
 TiHeap::allocSupercomb(const Name& name, const std::vector<Name>& args, const CoreExpr& body)
 {
   return allocate<NSupercomb>(name, args, body);

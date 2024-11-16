@@ -34,7 +34,7 @@ namespace {
     auto [heap, globals] = acc;
     const auto name = defn->getName();
     const auto binders = defn->getBinders();
-    globals[name] = heap.allocSupercomb(name, (binders ? *binders : std::vector<Name>()), defn->getBody());
+    globals[name] = heap.allocSupercomb(name, (binders ? *binders : std::vector<TiHeap::Name>()), defn->getBody());
     return std::tuple(heap, globals);
   }
 
