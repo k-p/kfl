@@ -10,6 +10,7 @@
 
 #include <exception>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -17,7 +18,7 @@ namespace kfl {
 
   class TiState;
 
-  class TiHeap : public Heap
+  class TiHeap : public Heap<unsigned, std::string>
   {
   public:
 
@@ -34,24 +35,21 @@ namespace kfl {
 
     const TiNode& lookup(Addr addr) const override;
 
-    void print(std::ostream& os) const {
-      os << "Heap: " << std::endl;
-      for (auto a = 0; a < heap_.size(); ++a) {
-        os << "  " << a << ": " << lookup(a) << std::endl;
-      }
-      os << std::endl;
-    }
-
   private:
-    using TiNodeHeap = std::vector<std::shared_ptr<TiNode>>;
-    TiNodeHeap heap_;
-
     template<typename T, typename... Args>
     inline Addr allocate(Args&&... args)
     {
       heap_.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
       return Addr(heap_.size() - 1);
     }
+
+  private:
+    using TiNodeHeap = std::vector<std::shared_ptr<TiNode>>;
+    TiNodeHeap heap_;
   };
+
+  inline std::ostream& operator<<(std::ostream& os, const TiHeap::TiNode& node) {
+    return node.print(os);
+  }
 
 } /* end namespace kfl */

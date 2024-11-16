@@ -65,8 +65,8 @@ namespace {
     public:
       NNum(int n) : num_(n) { }
 
-      void print(std::ostream& os) const override {
-        os << "NNum " << num_;
+      std::ostream& print(std::ostream& os) const override {
+        return os << "NNum " << num_;
       }
 
       TiState dispatch(TiState state) const override {
@@ -83,8 +83,8 @@ namespace {
     public:
       NAp(Addr fn, Addr arg) : fn_(fn), arg_(arg) { }
 
-      void print(std::ostream& os) const override {
-        os << "NAp " << fn_ << ' ' << arg_;
+      std::ostream& print(std::ostream& os) const override {
+        return os << "NAp " << fn_ << ' ' << arg_;
       }
 
       TiState dispatch(TiState state) const override {
@@ -106,8 +106,8 @@ namespace {
       NSupercomb(const Name& name, const ArgList& args, const CoreExpr& body)
         : name_(name), args_(args), body_(body) { }
 
-      void print(std::ostream& os) const override {
-        os << "NSupercomb " << name_;
+      std::ostream& print(std::ostream& os) const override {
+        return os << "NSupercomb " << name_;
       }
 
       TiState dispatch(TiState state) const override {
