@@ -9,18 +9,12 @@
 #include "CoreExpr.h"
 
 #include <iostream>
-#include <memory>
-#include <string>
 
 namespace kfl {
 
   class GraphReducer {
   public:
-      std::string run(const std::istream& is);
-
-  private:
-      std::unique_ptr<CoreProgram> parse(const std::istream& is);
-      std::unique_ptr<TiState> compile(const CoreProgram& program);
+      static void run(const CoreProgram& p, std::ostream& os);
   };
 
 } /* end namespace kfl */
