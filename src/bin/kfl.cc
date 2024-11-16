@@ -52,7 +52,7 @@ namespace {
       throw std::runtime_error("main is not defined");
     }
 
-    TiStack initial_stack(&heap);
+    TiStack initial_stack;
     initial_stack.push_back(address_of_main->second);
 
     return TiState(initial_stack, TiDump(), heap, globals, TiStats());

@@ -126,7 +126,7 @@ namespace {
 
     private:
       TiStack getArgs(const TiHeap& heap, const TiStack& stack) const {
-        TiStack args(&heap);
+        TiStack args;
         std::transform(stack.cbegin(), stack.cend() - 1, std::back_inserter(args),
                         [&](const Addr addr){
                           return heap.lookup(addr).getArg();

@@ -16,8 +16,7 @@ namespace kfl {
   public:
     using Addr = TiHeap::Addr;
 
-    inline explicit TiStack(const TiHeap* heap)
-      : std::vector<Addr>(), m_heap(heap) { }
+    inline explicit TiStack() : std::vector<Addr>() { }
 
     using std::vector<Addr>::value_type;
 
@@ -34,7 +33,6 @@ namespace kfl {
     using std::vector<Addr>::cend;
     using std::vector<Addr>::rbegin;
 
-    inline const TiHeap& heap() const { return *m_heap; }
     inline std::ostream& print(std::ostream& os, const TiHeap& heap) const {
       os << "Stck [";
       for (const auto& a : *this) {
@@ -43,9 +41,6 @@ namespace kfl {
       os << ']';
       return os;
     }
-
-  private:
-    const TiHeap* m_heap;
   };
 
   inline std::ostream& operator<<(std::ostream& os, const TiStack& stack) {
