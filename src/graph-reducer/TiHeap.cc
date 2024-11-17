@@ -138,8 +138,13 @@ namespace {
           + std::to_string(args_.size()) + " required, but only " + std::to_string(values.size()) + " supplied");
         }
         std::map<Name, Addr> env(state.globals);
-        std::transform(args_.begin(), args_.end(), values.rbegin(), std::inserter(env, env.end()),
-                        [](const Name& name, const Addr value) { return std::make_pair(name, value); });
+        auto v = values.rbegin();
+        for (const auto& name : args_) {
+          env[name] = *v;
+          ++v;
+        }
+        //std::transform(args_.begin(), args_.end(), values.rbegin(), std::inserter(env, env.end()),
+        //                [](const Name& name, const Addr value) { return std::make_pair(name, value); });
         state.stack.erase(state.stack.end() - args_.size() - 1, state.stack.end());
         state.stack.push_back(Instantiate(state.heap, env)(body_));
         return state;

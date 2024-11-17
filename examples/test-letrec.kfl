@@ -5,7 +5,7 @@ S f g x = f x (g x) ;
 compose f g x = f (g x) ;
 twice f = compose f f ;
 
-pair x y fn = fn x y ;
+pair x y f = f x y ;
 fst p = p K ;
 snd p = p K1 ;
 
