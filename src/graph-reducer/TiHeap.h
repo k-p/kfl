@@ -34,9 +34,10 @@ namespace kfl {
     Addr allocSupercomb(const Name& name, const ArgList& args, const CoreExpr& body) override;
 
     Addr alloc();
-    void setAp(Addr addr, Addr fn, Addr arg);
-    void setNum(Addr addr, int n);
-    void setSupercomb(Addr addr, const Name& name, const ArgList& args, const CoreExpr& body);
+    void updateAp(Addr addr, Addr fn, Addr arg);
+    void updateNum(Addr addr, int n);
+    void updateSupercomb(Addr addr, const Name& name, const ArgList& args, const CoreExpr& body);
+    void updateInd(Addr addr, Addr target);
 
     const TiNode& lookup(Addr addr) const override;
 
@@ -48,7 +49,7 @@ namespace kfl {
     }
 
     template<typename T, typename... Args>
-    inline void set(const Addr addr, Args&&... args) {
+    inline void update(const Addr addr, Args&&... args) {
       heap_[addr] = std::make_unique<T>(std::forward<Args>(args)...);
     }
 

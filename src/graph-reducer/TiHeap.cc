@@ -34,7 +34,7 @@ namespace {
     void visitNum(const CoreNum& e) override
     {
       if (addr_) {
-        heap_.setNum(*addr_, e.getNum());
+        heap_.updateNum(*addr_, e.getNum());
       }
       else {
         addr_ = heap_.allocNum(e.getNum());
@@ -49,9 +49,9 @@ namespace {
     void visitAp(const CoreAp& e) override
     {
       if (addr_) {
-        heap_.setAp(*addr_,
-                    Instantiate(heap_, env_)(e.getFn()),
-                    Instantiate(heap_, env_)(e.getArg()));
+        heap_.updateAp(*addr_,
+                       Instantiate(heap_, env_)(e.getFn()),
+                       Instantiate(heap_, env_)(e.getArg()));
       }
       else {
         addr_ = heap_.allocAp(Instantiate(heap_, env_)(e.getFn()),
@@ -97,7 +97,7 @@ namespace {
       bool isDataNode() const override { return true; }
 
     private:
-      int num_;
+      const int num_;
     };
 
   class NAp : public TiNode {
@@ -145,8 +145,11 @@ namespace {
         }
         //std::transform(args_.begin(), args_.end(), values.rbegin(), std::inserter(env, env.end()),
         //                [](const Name& name, const Addr value) { return std::make_pair(name, value); });
-        state.stack.erase(state.stack.end() - args_.size() - 1, state.stack.end());
-        state.stack.push_back(Instantiate(state.heap, env)(body_));
+        const auto root = state.stack.end() - args_.size() - 1;
+        const auto addr = Instantiate(state.heap, env)(body_);
+        state.heap.updateInd(*root, addr);
+        state.stack.erase(root, state.stack.end());
+        state.stack.push_back(addr);
         return state;
       }
 
@@ -165,6 +168,23 @@ namespace {
       const CoreExpr& body_;
     };
 
+    class NInd : public TiNode
+    {
+    public:
+      NInd(Addr addr) : addr_(addr) { }
+
+      std::ostream& print(std::ostream& os) const override {
+        return os << "NInd " << addr_;
+      }
+
+      TiState dispatch(TiState state) const override {
+        state.stack.back() = addr_;
+        return state;
+      }
+
+    private:
+      const Addr addr_;
+    };
 }
 
 TiHeap::Addr
@@ -193,21 +213,27 @@ TiHeap::alloc()
 }
 
 void
-TiHeap::setAp(const Addr addr, const Addr fn, const Addr arg)
+TiHeap::updateAp(const Addr addr, const Addr fn, const Addr arg)
 {
-  set<NAp>(addr, fn, arg);
+  update<NAp>(addr, fn, arg);
 }
 
 void
-TiHeap::setNum(const Addr addr, const int n)
+TiHeap::updateNum(const Addr addr, const int n)
 {
-  set<NNum>(addr, n);
+  update<NNum>(addr, n);
 }
 
 void
-TiHeap::setSupercomb(const Addr addr, const Name& name, const std::vector<Name>& args, const CoreExpr& body)
+TiHeap::updateSupercomb(const Addr addr, const Name& name, const std::vector<Name>& args, const CoreExpr& body)
 {
-  set<NSupercomb>(addr, name, args, body);
+  update<NSupercomb>(addr, name, args, body);
+}
+
+void
+TiHeap::updateInd(const Addr addr, const Addr target)
+{
+  update<NInd>(addr, target);
 }
 
 const TiNode&
