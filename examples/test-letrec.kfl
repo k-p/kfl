@@ -1,0 +1,18 @@
+I x = x ;
+K  x y = x ;
+K1 x y = y ;
+S f g x = f x (g x) ;
+compose f g x = f (g x) ;
+twice f = compose f f ;
+
+pair x y fn = fn x y ;
+fst p = p K ;
+snd p = p K1 ;
+
+f x y = letrec
+            a = pair x b ;
+            b = pair y a
+        in
+            fst (snd (snd (snd a))) ;
+
+main = f 3 4

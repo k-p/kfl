@@ -33,14 +33,23 @@ namespace kfl {
     Addr allocNum(int n) override;
     Addr allocSupercomb(const Name& name, const ArgList& args, const CoreExpr& body) override;
 
+    Addr alloc();
+    void setAp(Addr addr, Addr fn, Addr arg);
+    void setNum(Addr addr, int n);
+    void setSupercomb(Addr addr, const Name& name, const ArgList& args, const CoreExpr& body);
+
     const TiNode& lookup(Addr addr) const override;
 
   private:
     template<typename T, typename... Args>
-    inline Addr allocate(Args&&... args)
-    {
+    inline Addr allocate(Args&&... args) {
       heap_.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
       return Addr(heap_.size() - 1);
+    }
+
+    template<typename T, typename... Args>
+    inline void set(const Addr addr, Args&&... args) {
+      heap_[addr] = std::make_unique<T>(std::forward<Args>(args)...);
     }
 
   private:

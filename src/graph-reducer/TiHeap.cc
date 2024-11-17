@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iterator>
 #include <exception>
+#include <optional>
 
 namespace {
 
@@ -19,7 +20,7 @@ namespace {
   {
     TiHeap& heap_;
     const TiGlobals& env_;
-    TiHeap::Addr addr_ = 0;
+    std::optional<TiHeap::Addr> addr_;
 
     void visitVar(const CoreVar& e) override
     {
@@ -32,7 +33,12 @@ namespace {
 
     void visitNum(const CoreNum& e) override
     {
-      addr_ = heap_.allocNum(e.getNum());
+      if (addr_) {
+        heap_.setNum(*addr_, e.getNum());
+      }
+      else {
+        addr_ = heap_.allocNum(e.getNum());
+      }
     }
 
     void visitConstr(const CoreConstr& e) override
@@ -42,13 +48,27 @@ namespace {
 
     void visitAp(const CoreAp& e) override
     {
-      addr_ = heap_.allocAp(Instantiate(heap_, env_)(e.getFn()),
-                            Instantiate(heap_, env_)(e.getArg()));
+      if (addr_) {
+        heap_.setAp(*addr_,
+                    Instantiate(heap_, env_)(e.getFn()),
+                    Instantiate(heap_, env_)(e.getArg()));
+      }
+      else {
+        addr_ = heap_.allocAp(Instantiate(heap_, env_)(e.getFn()),
+                              Instantiate(heap_, env_)(e.getArg()));
+      }
     }
 
     void visitLet(const CoreLet& e) override
     {
-      throw std::runtime_error("Can't instantiate let(rec)s yet");
+      TiGlobals localEnv = env_;
+      for (const auto& d : e.getDefns()) {
+        localEnv[d.first] = heap_.alloc();
+      }
+      for (const auto& d : e.getDefns()) {
+        Instantiate(heap_, localEnv, localEnv[d.first])(*d.second);
+      }
+      addr_ = Instantiate(heap_, localEnv)(e.getBody());
     }
 
     void visitCase(const CoreCase& e) override
@@ -58,7 +78,8 @@ namespace {
 
   public:
     Instantiate(TiHeap& heap, const TiGlobals& env) : heap_(heap), env_(env) { }
-    TiHeap::Addr operator()(const CoreExpr& e) { e.visit(*this); return addr_; }
+    Instantiate(TiHeap& heap, const TiGlobals& env, const TiHeap::Addr addr) : heap_(heap), env_(env), addr_(addr) { }
+    TiHeap::Addr operator()(const CoreExpr& e) { e.visit(*this); return *addr_; }
   };
 
   class NNum : public TiNode {
@@ -159,11 +180,39 @@ TiHeap::allocSupercomb(const Name& name, const std::vector<Name>& args, const Co
   return allocate<NSupercomb>(name, args, body);
 }
 
+TiHeap::Addr
+TiHeap::alloc()
+{
+  heap_.emplace_back(std::shared_ptr<TiNode>(nullptr));
+  return Addr(heap_.size() - 1);
+}
+
+void
+TiHeap::setAp(const Addr addr, const Addr fn, const Addr arg)
+{
+  set<NAp>(addr, fn, arg);
+}
+
+void
+TiHeap::setNum(const Addr addr, const int n)
+{
+  set<NNum>(addr, n);
+}
+
+void
+TiHeap::setSupercomb(const Addr addr, const Name& name, const std::vector<Name>& args, const CoreExpr& body)
+{
+  set<NSupercomb>(addr, name, args, body);
+}
+
 const TiNode&
 TiHeap::lookup(Addr addr) const
 {
   if (addr >= heap_.size()) {
-    throw std::runtime_error("Heap lookup failed");
+    throw std::runtime_error("Heap lookup failed: address out of range - " + std::to_string(addr));
+  }
+  if (heap_[addr].get() == nullptr) {
+    throw std::runtime_error("Heap lookup failed: null node - " + std::to_string(addr));
   }
   return *heap_[addr];
 }
