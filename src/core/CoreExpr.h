@@ -4,8 +4,7 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#ifndef __CORE_EXPR_H__
-#define __CORE_EXPR_H__
+#pragma once
 
 #include "Expr.h"
 #include "ExprFactory.h"
@@ -31,8 +30,7 @@ namespace kfl {
 
   using CoreFactory = ExprFactory<CoreId>;
 
-  using CoreVisitor = Visitor<CoreId>;
-  using CoreDefaultVisitor = DefaultVisitor<CoreId>;
+  template<typename T> class CoreVisitor : public Visitor<CoreId, T> { };
+  template<typename T> class CoreDefaultVisitor : public DefaultVisitor<CoreId, T> { };
+  template<typename T, typename Derived> class CoreFnExprVisitor : public FnExprVisitor<CoreId, T, Derived> { };
 }
-
-#endif /* __CORE_EXPR_H__ */

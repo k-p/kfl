@@ -10,46 +10,79 @@
 
 namespace kfl {
 
-  template<typename T>
+  template<typename Id, typename T>
   class Visitor {
   public:
     virtual ~Visitor() { }
-    inline void visit(const Program<T> & p) { visitProgram(p); }
-    inline void visit(const ScDefn<T> & d) { visitScDefn(d); }
-    inline void visit(const Expr<T> & e) { visitExpr(e); }
-  protected:
-    virtual void visitProgram(const Program<T> & p) = 0;
-    virtual void visitScDefn(const ScDefn<T> & d) = 0;
-    virtual void visitExpr(const Expr<T> & e) { e.visit(*this); }
-    virtual void visitVar(const EVar<T> & e) = 0;
-    virtual void visitNum(const ENum<T> & e) = 0;
-    virtual void visitConstr(const EConstr<T> & e) = 0;
-    virtual void visitAp(const EAp<T> & e) = 0;
-    virtual void visitLet(const ELet<T> & e) = 0;
-    virtual void visitCase(const ECase<T> & e) = 0;
-    virtual void visitLam(const ELam<T> & e) = 0;
+    inline T visit(const Program<Id> & p) { return visitProgram(p); }
+    inline T visit(const ScDefn<Id> & d) { return visitScDefn(d); }
+    inline T visit(const Expr<Id> & e) { return visitExpr(e); }
+  private:
+    virtual T visitProgram(const Program<Id> & p) = 0;
+    virtual T visitScDefn(const ScDefn<Id> & d) = 0;
+    virtual T visitExpr(const Expr<Id> & e) { return e.visit(*this); }
+    virtual T visitVar(const EVar<Id> & e) = 0;
+    virtual T visitNum(const ENum<Id> & e) = 0;
+    virtual T visitConstr(const EConstr<Id> & e) = 0;
+    virtual T visitAp(const EAp<Id> & e) = 0;
+    virtual T visitLet(const ELet<Id> & e) = 0;
+    virtual T visitCase(const ECase<Id> & e) = 0;
+    virtual T visitLam(const ELam<Id> & e) = 0;
 
-    friend class EVar<T>;
-    friend class ENum<T>;
-    friend class EConstr<T>;
-    friend class EAp<T>;
-    friend class ELet<T>;
-    friend class ECase<T>;
-    friend class ELam<T>;
+    friend class EVar<Id>;
+    friend class ENum<Id>;
+    friend class EConstr<Id>;
+    friend class EAp<Id>;
+    friend class ELet<Id>;
+    friend class ECase<Id>;
+    friend class ELam<Id>;
   };
 
-  template<typename T>
-  class DefaultVisitor : public Visitor<T> {
-  protected:
-    void visitProgram(const Program<T> & p) override { }
-    void visitScDefn(const ScDefn<T> & d) override { }
-    void visitVar(const EVar<T> & e) override { }
-    void visitNum(const ENum<T> & e) override { }
-    void visitConstr(const EConstr<T> & e) override { }
-    void visitAp(const EAp<T> & e) override { }
-    void visitLet(const ELet<T> & e) override { }
-    void visitCase(const ECase<T> & e) override { }
-    void visitLam(const ELam<T> & e) override { }
+  template<typename Id, typename T>
+  class DefaultVisitor : public Visitor<Id, T> {
+  private:
+    T visitProgram(const Program<Id> & p) override { return T(); }
+    T visitScDefn(const ScDefn<Id> & d) override { return T(); }
+    T visitVar(const EVar<Id> & e) override { return T(); }
+    T visitNum(const ENum<Id> & e) override { return T(); }
+    T visitConstr(const EConstr<Id> & e) override { return T(); }
+    T visitAp(const EAp<Id> & e) override { return T(); }
+    T visitLet(const ELet<Id> & e) override { return T(); }
+    T visitCase(const ECase<Id> & e) override { return T(); }
+    T visitLam(const ELam<Id> & e) override { return T(); }
+  };
+
+  template<typename Id, typename T, typename Derived>
+  class FnExprVisitor : public DefaultVisitor<Id, void>
+  {
+  public:
+    ~FnExprVisitor() override = default;
+    inline T operator()(const Expr<Id>& e) { e.visit(*this); return result_; }
+
+  private:
+    void visitVar(const EVar<Id> & e) override {
+      result_ = static_cast<Derived*>(this)->visit(e);
+    }
+    void visitNum(const ENum<Id> & e) override {
+      result_ = static_cast<Derived*>(this)->visit(e);
+    }
+    void visitConstr(const EConstr<Id> & e) override {
+      result_ = static_cast<Derived*>(this)->visit(e);
+    }
+    void visitAp(const EAp<Id> & e) override {
+      result_ = static_cast<Derived*>(this)->visit(e);
+    }
+    void visitLet(const ELet<Id> & e) override {
+      result_ = static_cast<Derived*>(this)->visit(e);
+    }
+    void visitCase(const ECase<Id> & e) override {
+      result_ = static_cast<Derived*>(this)->visit(e);
+    }
+    void visitLam(const ELam<Id> & e) override {
+      result_ = static_cast<Derived*>(this)->visit(e);
+    }
+
+    T result_;
   };
 
 } /* end namespace kfl */

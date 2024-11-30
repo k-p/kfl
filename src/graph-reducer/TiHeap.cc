@@ -15,51 +15,46 @@ namespace {
   using ArgList = TiHeap::ArgList;
   using Name = TiHeap::Name;
   using TiNode = TiHeap::TiNode;
-  
-  class Instantiate : private CoreDefaultVisitor
+
+  class Instantiate : public CoreFnExprVisitor<TiHeap::Addr, Instantiate>
   {
+    using super = CoreFnExprVisitor<TiHeap::Addr, Instantiate>;
+
     TiHeap& heap_;
     const TiGlobals& env_;
-    std::optional<TiHeap::Addr> addr_;
+    const std::optional<TiHeap::Addr> addr_;
 
-    void visitVar(const CoreVar& e) override
+  public:
+    TiHeap::Addr visit(const CoreVar& e)
     {
       const auto itr = env_.find(e.getId());
       if (itr == env_.end()) {
         throw std::runtime_error("Undefined name " + e.getId());
       }
-      addr_ = itr->second;
+      return itr->second;
     }
 
-    void visitNum(const CoreNum& e) override
+    TiHeap::Addr visit(const CoreNum& e)
     {
-      if (addr_) {
-        heap_.updateNum(*addr_, e.getNum());
-      }
-      else {
-        addr_ = heap_.allocNum(e.getNum());
-      }
+      return (addr_ ? heap_.updateNum(*addr_, e.getNum()) : heap_.allocNum(e.getNum()));
     }
 
-    void visitConstr(const CoreConstr& e) override
+    TiHeap::Addr visit(const CoreConstr& e)
     { 
       throw std::runtime_error("Can't instantiate constructors yet");
     }
 
-    void visitAp(const CoreAp& e) override
+    TiHeap::Addr visit(const CoreAp& e)
     {
-      if (addr_) {
-        heap_.updateAp(*addr_,
-                       Instantiate(heap_, env_)(e.getFn()),
-                       Instantiate(heap_, env_)(e.getArg()));
-      }
-      else {
-        addr_ = heap_.allocAp(Instantiate(heap_, env_)(e.getFn()),
-                              Instantiate(heap_, env_)(e.getArg()));
-      }
+      return (addr_
+                ? heap_.updateAp(*addr_,
+                                 Instantiate(heap_, env_)(e.getFn()),
+                                 Instantiate(heap_, env_)(e.getArg()))
+                : heap_.allocAp(Instantiate(heap_, env_)(e.getFn()),
+                                Instantiate(heap_, env_)(e.getArg())));
     }
 
-    void visitLet(const CoreLet& e) override
+    TiHeap::Addr visit(const CoreLet& e)
     {
       TiGlobals localEnv = env_;
       for (const auto& d : e.getDefns()) {
@@ -68,18 +63,22 @@ namespace {
       for (const auto& d : e.getDefns()) {
         Instantiate(heap_, localEnv, localEnv[d.first])(*d.second);
       }
-      addr_ = Instantiate(heap_, localEnv)(e.getBody());
+      return Instantiate(heap_, localEnv)(e.getBody());
     }
 
-    void visitCase(const CoreCase& e) override
+    TiHeap::Addr visit(const CoreCase& e)
     {
       throw std::runtime_error("Can't instantiate case exprs");
     }
 
+    TiHeap::Addr visit(const CoreLam& e)
+    {
+      throw std::runtime_error("Can't instantiate lambda exprs");
+    }
+
   public:
-    Instantiate(TiHeap& heap, const TiGlobals& env) : heap_(heap), env_(env) { }
-    Instantiate(TiHeap& heap, const TiGlobals& env, const TiHeap::Addr addr) : heap_(heap), env_(env), addr_(addr) { }
-    TiHeap::Addr operator()(const CoreExpr& e) { e.visit(*this); return *addr_; }
+    Instantiate(TiHeap& heap, const TiGlobals& env) : super(), heap_(heap), env_(env) { }
+    Instantiate(TiHeap& heap, const TiGlobals& env, const TiHeap::Addr addr) : super(), heap_(heap), env_(env), addr_(addr) { }
   };
 
   class NNum : public TiNode {
@@ -212,28 +211,28 @@ TiHeap::alloc()
   return Addr(heap_.size() - 1);
 }
 
-void
+TiHeap::Addr
 TiHeap::updateAp(const Addr addr, const Addr fn, const Addr arg)
 {
-  update<NAp>(addr, fn, arg);
+  return update<NAp>(addr, fn, arg);
 }
 
-void
+TiHeap::Addr
 TiHeap::updateNum(const Addr addr, const int n)
 {
-  update<NNum>(addr, n);
+  return update<NNum>(addr, n);
 }
 
-void
+TiHeap::Addr
 TiHeap::updateSupercomb(const Addr addr, const Name& name, const std::vector<Name>& args, const CoreExpr& body)
 {
-  update<NSupercomb>(addr, name, args, body);
+  return update<NSupercomb>(addr, name, args, body);
 }
 
-void
+TiHeap::Addr
 TiHeap::updateInd(const Addr addr, const Addr target)
 {
-  update<NInd>(addr, target);
+  return update<NInd>(addr, target);
 }
 
 const TiNode&

@@ -66,7 +66,7 @@ void kfl::Pprint<T>::visitScDefn(const ScDefn<T> & d)
     pprintListWithPrefix(*binders, m_os, ' ');
   }
   m_os << " = ";
-  super::visitExpr(d.getBody());
+  d.getBody().visit(*this);
 }
 
 template<class T>
@@ -90,9 +90,9 @@ void kfl::Pprint<T>::visitConstr(const EConstr<T> & e)
 template<class T>
 void kfl::Pprint<T>::visitAp(const EAp<T> & e)
 {
-  super::visitExpr(e.getFn());
+  e.getFn().visit(*this);
   m_os << ' ';
-  super::visitExpr(e.getArg());
+  e.getArg().visit(*this);
 }
 
 template<class T>
@@ -111,7 +111,7 @@ void kfl::Pprint<T>::visitLet(const ELet<T> & e)
     visitLetDefn(*d);
   }
   m_os << std::endl << "in ";
-  super::visitExpr(e.getBody());
+  e.getBody().visit(*this);
 }
 
 template<class T>
@@ -126,7 +126,7 @@ template<class T>
 void kfl::Pprint<T>::visitCase(const ECase<T> & e)
 {
   m_os << "case ";
-  super::visitExpr(e.getExpr());
+  e.getExpr().visit(*this);
   m_os << " of" << std::endl;
   const typename ECase<T>::AlterVec & alters = e.getAlters();
   typename ECase<T>::AlterVec::const_iterator a = alters.begin();
@@ -155,8 +155,7 @@ void kfl::Pprint<T>::visitCaseAlter(const typename ECase<T>::Alter & alter)
     pprintListWithPrefix(*alter.binders, m_os, ' ');
   }
   m_os << " -> ";
-  super::visitExpr(*alter.expr);
-
+  alter.expr->visit(*this);
 }
 
 template<class T>
@@ -165,7 +164,7 @@ void kfl::Pprint<T>::visitLam(const ELam<T> & e)
   m_os << '\\';
   pprintListWithPrefix(e.getBinders(), m_os, ' ');
   m_os << ". ";
-  super::visitExpr(e.getBody());
+  e.getBody().visit(*this);
 }
 
 template<class T>
@@ -186,7 +185,7 @@ void kfl::PprintA<T>::visitExpr(const Expr<T> & e)
   if (!atomic) {
     super::m_os << '(';
   }
-  super::visitExpr(e);
+  e.visit(*this);
   if (!atomic) {
     super::m_os << ')';
   }

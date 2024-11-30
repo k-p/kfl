@@ -16,8 +16,8 @@
 namespace kfl {
 
   template<class T>
-  class Pprint : public Visitor<T>, private boost::noncopyable {
-    using super = Visitor<T>;
+  class Pprint : public Visitor<T, void>, private boost::noncopyable {
+    using super = Visitor<T, void>;
   public:
     Pprint(std::ostream & os);
     virtual ~Pprint();
