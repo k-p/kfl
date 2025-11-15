@@ -41,22 +41,28 @@ namespace kfl {
 
     const TiNode& lookup(Addr addr) const override;
 
+    unsigned getAllocs() const { return allocs_; }
+    unsigned getUpdates() const { return updates_; }
+
   private:
     template<typename T, typename... Args>
     inline Addr allocate(Args&&... args) {
       heap_.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
+      ++allocs_;
       return Addr(heap_.size() - 1);
     }
 
     template<typename T, typename... Args>
     inline TiHeap::Addr update(const Addr addr, Args&&... args) {
       heap_[addr] = std::make_unique<T>(std::forward<Args>(args)...);
+      ++updates_;
       return addr;
     }
 
-  private:
     using TiNodeHeap = std::vector<std::shared_ptr<TiNode>>;
     TiNodeHeap heap_;
+    unsigned allocs_ = 0;
+    unsigned updates_ = 0;
   };
 
   inline std::ostream& operator<<(std::ostream& os, const TiHeap::TiNode& node) {

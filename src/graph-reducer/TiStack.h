@@ -43,11 +43,4 @@ namespace kfl {
     }
   };
 
-  inline std::ostream& operator<<(std::ostream& os, const TiStack& stack) {
-    os << "Stck [";
-    std::copy(stack.cbegin(), stack.cend(), std::ostream_iterator<TiStack::value_type>(os, ", "));
-    os << ']';
-    return os;
-  }
-
 } /* end namespace kfl */

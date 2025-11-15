@@ -109,6 +109,7 @@ namespace {
 
       TiState dispatch(TiState state) const override {
         state.stack.push_back(fn_);
+        state.stats.incPrimitive();
         return state;
       }
 
@@ -142,13 +143,12 @@ namespace {
           env[name] = *v;
           ++v;
         }
-        //std::transform(args_.begin(), args_.end(), values.rbegin(), std::inserter(env, env.end()),
-        //                [](const Name& name, const Addr value) { return std::make_pair(name, value); });
         const auto root = state.stack.end() - args_.size() - 1;
         const auto addr = Instantiate(state.heap, env)(body_);
         state.heap.updateInd(*root, addr);
         state.stack.erase(root, state.stack.end());
         state.stack.push_back(addr);
+        state.stats.incSupercomb();
         return state;
       }
 
@@ -208,6 +208,7 @@ TiHeap::Addr
 TiHeap::alloc()
 {
   heap_.emplace_back(std::shared_ptr<TiNode>(nullptr));
+  ++allocs_;
   return Addr(heap_.size() - 1);
 }
 
