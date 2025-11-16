@@ -49,6 +49,7 @@ namespace {
   TiState applyToStats(TiState state)
   {
     state.stats.incSteps();
+    state.stats.setMaxStackDepth(state.stack.size());
     return state;
   }
 
@@ -73,5 +74,8 @@ void GraphReducer::run(const CoreProgram& p, std::ostream& os)
       states.push_back(s);
     }
 
-    os << std::endl << "Trace:" << std::endl << states << std::endl;
+    os << "Trace:" << std::endl << states << std::endl
+       << "Stats:" << std::endl << states.back().stats
+       << "Total number of allocations = " << states.back().heap.getAllocs() << std::endl
+       << "Total number of updates = " << states.back().heap.getUpdates() << std::endl;
 }

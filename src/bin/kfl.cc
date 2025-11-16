@@ -38,8 +38,7 @@ int main()
 
     auto p = parse(storage.begin(), storage.end());
 
-    Pprint<CoreId> pprint(std::cout);
-    pprint.visit(*p);
+    Pprint<CoreId>(std::cout).visit(*p);
     std::cout << std::endl;
 
     GraphReducer::run(*p, std::cout);

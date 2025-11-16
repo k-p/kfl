@@ -43,11 +43,11 @@ namespace kfl {
   }
 
   inline std::ostream& operator<<(std::ostream& os, const TiState& state) {
-    return state.stack.print(os, state.heap) << std::endl;
+    return state.stack.print(os, state.heap);
   }
 
   inline std::ostream& operator<<(std::ostream& os, const std::vector<TiState>& states) {
-    std::copy(states.cbegin(), states.cend(), std::ostream_iterator<TiState>(os, "\n"));
+    std::ranges::copy(states, std::ostream_iterator<TiState>(os, "\n"));
     return os;
   }
 
