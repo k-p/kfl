@@ -32,6 +32,7 @@ namespace kfl {
     using std::vector<Addr>::cbegin;
     using std::vector<Addr>::cend;
     using std::vector<Addr>::rbegin;
+    using std::vector<Addr>::rend;
 
     inline std::ostream& print(std::ostream& os, const TiHeap& heap) const {
       os << "Stck [";

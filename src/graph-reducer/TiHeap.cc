@@ -5,6 +5,7 @@
 #include "TiState.h"
 
 #include <algorithm>
+#include <cassert>
 #include <iterator>
 #include <exception>
 #include <optional>
@@ -139,6 +140,7 @@ namespace {
         std::map<Name, Addr> env(state.globals);
         auto v = values.rbegin();
         for (const auto& name : args_) {
+          assert(v != values.rend());
           env[name] = *v;
           ++v;
         }
