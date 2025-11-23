@@ -180,6 +180,7 @@ namespace {
 
       TiState dispatch(TiState state) const override {
         state.stack.back() = addr_;
+        state.stats.incInd();
         return state;
       }
 

@@ -19,6 +19,9 @@ namespace kfl {
     inline void incPrimitive() { ++p_; }
     inline unsigned getPrimitive() const { return p_; }
 
+    inline void incInd() { ++i_; }
+    inline unsigned getInd() const { return i_; }
+
     inline void setMaxStackDepth(unsigned sd) { sd_ = std::max(sd_, sd); }
     inline unsigned getMaxStackDepth() const { return sd_; }
 
@@ -26,6 +29,7 @@ namespace kfl {
     unsigned s_ = 0;
     unsigned sc_ = 0;
     unsigned p_ = 0;
+    unsigned i_ = 0;
     unsigned sd_ = 0;
   };
 
