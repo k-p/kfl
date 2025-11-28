@@ -23,63 +23,94 @@ namespace {
 
     TiHeap& heap_;
     const TiGlobals& env_;
-    const std::optional<TiHeap::Addr> addr_;
+
+  protected:
+    TiHeap& heap() { return heap_; }
+    const TiGlobals& env() const { return env_; }
 
   public:
-    TiHeap::Addr visit(const CoreVar& e)
+    virtual TiHeap::Addr visit(const CoreVar& e)
     {
-      const auto itr = env_.find(e.getId());
-      if (itr == env_.end()) {
+      const auto itr = env().find(e.getId());
+      if (itr == env().end()) {
         throw std::runtime_error("Undefined name " + e.getId());
       }
       return itr->second;
     }
 
-    TiHeap::Addr visit(const CoreNum& e)
+    virtual TiHeap::Addr visit(const CoreNum& e)
     {
-      return (addr_ ? heap_.updateNum(*addr_, e.getNum()) : heap_.allocNum(e.getNum()));
+      return heap().allocNum(e.getNum());
     }
 
-    TiHeap::Addr visit(const CoreConstr& e)
+    virtual TiHeap::Addr visit(const CoreConstr& e)
     { 
       throw std::runtime_error("Can't instantiate constructors yet");
     }
 
-    TiHeap::Addr visit(const CoreAp& e)
+    virtual TiHeap::Addr visit(const CoreAp& e)
     {
-      return (addr_
-                ? heap_.updateAp(*addr_,
-                                 Instantiate(heap_, env_)(e.getFn()),
-                                 Instantiate(heap_, env_)(e.getArg()))
-                : heap_.allocAp(Instantiate(heap_, env_)(e.getFn()),
-                                Instantiate(heap_, env_)(e.getArg())));
+      return heap().allocAp(Instantiate(heap(), env())(e.getFn()), Instantiate(heap(), env())(e.getArg()));
     }
 
-    TiHeap::Addr visit(const CoreLet& e)
+    virtual TiHeap::Addr visit(const CoreLet& e)
     {
-      TiGlobals localEnv = env_;
+      TiGlobals localEnv = env();
       for (const auto& d : e.getDefns()) {
-        localEnv[d.first] = heap_.alloc();
+        localEnv[d.first] = heap().alloc();
       }
       for (const auto& d : e.getDefns()) {
-        Instantiate(heap_, localEnv, localEnv[d.first])(*d.second);
+        Instantiate(heap(), localEnv)(*d.second);
       }
-      return Instantiate(heap_, localEnv)(e.getBody());
+      return Instantiate(heap(), localEnv)(e.getBody());
     }
 
-    TiHeap::Addr visit(const CoreCase& e)
+    virtual TiHeap::Addr visit(const CoreCase& e)
     {
       throw std::runtime_error("Can't instantiate case exprs");
     }
 
-    TiHeap::Addr visit(const CoreLam& e)
+    virtual TiHeap::Addr visit(const CoreLam& e)
     {
       throw std::runtime_error("Can't instantiate lambda exprs");
     }
 
-  public:
     Instantiate(TiHeap& heap, const TiGlobals& env) : super(), heap_(heap), env_(env) { }
-    Instantiate(TiHeap& heap, const TiGlobals& env, const TiHeap::Addr addr) : super(), heap_(heap), env_(env), addr_(addr) { }
+  };
+
+  class InstantiateAndUpdate : public Instantiate
+  {
+    using super = Instantiate;
+
+    const TiHeap::Addr addr_;
+
+  protected:
+    TiHeap::Addr addr() const { return addr_; }
+
+  public:
+    TiHeap::Addr visit(const CoreNum& e) override
+    {
+      return heap().updateNum(addr(), e.getNum());
+    }
+
+    TiHeap::Addr visit(const CoreAp& e) override
+    {
+      return heap().updateAp(addr(), Instantiate(heap(), env())(e.getFn()), Instantiate(heap(), env())(e.getArg()));
+    }
+
+    TiHeap::Addr visit(const CoreLet& e) override
+    {
+      TiGlobals localEnv = env();
+      for (const auto& d : e.getDefns()) {
+        localEnv[d.first] = heap().alloc();
+      }
+      for (const auto& d : e.getDefns()) {
+        InstantiateAndUpdate(heap(), localEnv, localEnv[d.first])(*d.second);
+      }
+      return Instantiate(heap(), localEnv)(e.getBody());
+    }
+
+    InstantiateAndUpdate(TiHeap& heap, const TiGlobals& env, const TiHeap::Addr addr) : super(heap, env), addr_(addr) { }
   };
 
   class NNum : public TiNode {
@@ -146,10 +177,11 @@ namespace {
           ++v;
         }
         const auto root = state.stack.end() - args_.size() - 1;
-        const auto addr = Instantiate(state.heap, env)(body_);
-        state.heap.updateInd(*root, addr);
-        state.stack.erase(root, state.stack.end());
-        state.stack.push_back(addr);
+        const auto addr = InstantiateAndUpdate(state.heap, env, *root)(body_);
+        if (addr != *root) {
+          state.heap.updateInd(*root, addr);
+        }
+        state.stack.erase(root + 1, state.stack.end());
         state.stats.incSupercomb();
         return state;
       }
