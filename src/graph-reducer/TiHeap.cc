@@ -90,7 +90,7 @@ namespace {
         return os << "NNum " << num_;
       }
 
-      TiState dispatch(TiState state) const override {
+      TiState step(TiState state) const override {
         throw std::runtime_error("Number applied as function");
       }
 
@@ -108,7 +108,7 @@ namespace {
         return os << "NAp " << fn_ << ' ' << arg_;
       }
 
-      TiState dispatch(TiState state) const override {
+      TiState step(TiState state) const override {
         state.stack.push_back(fn_);
         state.stats.incPrimitive();
         return state;
@@ -132,7 +132,7 @@ namespace {
         return os << "NSupercomb " << name_;
       }
 
-      TiState dispatch(TiState state) const override {
+      TiState step(TiState state) const override {
         const TiStack values = getArgs(state.heap, state.stack);
         if (values.size() < args_.size()) {
           throw std::runtime_error("Not enough arguments to apply supercombinator '" + name_ + "'. "
@@ -178,7 +178,7 @@ namespace {
         return os << "NInd " << addr_;
       }
 
-      TiState dispatch(TiState state) const override {
+      TiState step(TiState state) const override {
         state.stack.back() = addr_;
         state.stats.incInd();
         return state;
@@ -210,7 +210,7 @@ TiHeap::allocSupercomb(const Name& name, const std::vector<Name>& args, const Co
 TiHeap::Addr
 TiHeap::alloc()
 {
-  heap_.emplace_back(std::shared_ptr<TiNode>(nullptr));
+  heap_.emplace_back(nullptr);
   ++allocs_;
   return Addr(heap_.size() - 1);
 }

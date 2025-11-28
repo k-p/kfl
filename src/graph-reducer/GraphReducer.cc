@@ -59,7 +59,7 @@ namespace {
       throw std::runtime_error("Stack empty");
     }
 
-    return applyToStats(state.heap.lookup(state.stack.back()).dispatch(state));
+    return applyToStats(state.heap.lookup(state.stack.back()).step(state));
   }
 
 }

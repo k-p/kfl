@@ -24,7 +24,7 @@ namespace kfl {
 
     class TiNode : public Node {
     public:
-      virtual TiState dispatch(TiState state) const = 0;
+      virtual TiState step(TiState state) const = 0;
       virtual bool isDataNode() const { return false; }
       virtual Addr getArg() const { throw std::runtime_error("Tried to get arg of node that is not an application"); }
     };
