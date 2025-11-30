@@ -42,7 +42,6 @@ namespace kfl {
     Addr alloc();
     Addr updateAp(Addr addr, Addr fn, Addr arg);
     Addr updateNum(Addr addr, int n);
-    Addr updateSupercomb(Addr addr, const Name& name, const ArgList& args, const CoreExpr& body);
     Addr updateInd(Addr addr, Addr target);
 
     const TiNode& lookup(Addr addr) const override;

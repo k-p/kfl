@@ -164,21 +164,43 @@ namespace {
       mutable Addr arg_;
     };
 
-    class NSupercomb : public TiNode {
+    class NFn : public TiNode {
     public:
-      NSupercomb(const Name& name, const ArgList& args, const CoreExpr& body)
-        : name_(name), args_(args), body_(body) { }
+      NFn(const Name& name) : name_(name) { }
 
       std::ostream& print(std::ostream& os) const override {
-        return os << "NSupercomb " << name_;
+        return os << getDescription() << ' ' << getName();
       }
 
-      TiState step(TiState state) const override {
-        const TiStack values = getArgs(state.heap, state.stack);
-        if (values.size() < args_.size()) {
-          throw std::runtime_error("Not enough arguments to apply supercombinator '" + name_ + "'. "
-          + std::to_string(args_.size()) + " required, but only " + std::to_string(values.size()) + " supplied");
+    protected:
+      const Name& getName() const { return name_; }
+      TiStack getArgs(const TiHeap& heap, const TiStack& stack, size_t n) const {
+        if (stack.size() - 1 < n) {
+          throw std::runtime_error("Not enough arguments to apply " + std::string(getDescription()) + " '" + getName() + "'. "
+          + std::to_string(n) + " required, but only " + std::to_string(stack.size()-1) + " supplied");
         }
+        TiStack args;
+        std::transform(stack.cbegin(), stack.cend() - 1, std::back_inserter(args),
+                        [&](const Addr addr){
+                          return heap.lookup(addr).getArg();
+                        });
+        return args;
+      }
+
+    private:
+      virtual const char * const getDescription() const = 0;
+
+      const Name name_;
+    };
+
+    class NSupercomb : public NFn {
+      using super = NFn;
+    public:
+      NSupercomb(const Name& name, const ArgList& args, const CoreExpr& body)
+        : super(name), args_(args), body_(body) { }
+
+      TiState step(TiState state) const override {
+        const TiStack values = getArgs(state.heap, state.stack, args_.size());
         std::map<Name, Addr> env(state.globals);
         auto v = values.rbegin();
         for (const auto& name : args_) {
@@ -197,18 +219,44 @@ namespace {
       }
 
     private:
-      TiStack getArgs(const TiHeap& heap, const TiStack& stack) const {
-        TiStack args;
-        std::transform(stack.cbegin(), stack.cend() - 1, std::back_inserter(args),
-                        [&](const Addr addr){
-                          return heap.lookup(addr).getArg();
-                        });
-        return args;
-      }
+      const char * const getDescription() const override { return "NSupercomb"; }
 
-      const Name name_;
       const ArgList args_;
       const CoreExpr& body_;
+    };
+
+    class NPrim : public NFn
+    {
+      using super = NFn;
+    public:
+      using Fn = std::function<int(int)>;
+
+      NPrim(Name name, Fn fn) : super(name), fn_(std::move(fn)) { }
+
+      TiState step(TiState state) const override {
+        const auto values = getArgs(state.heap, state.stack, 1);
+        const auto& value = state.heap.lookup(values.back());
+        auto root = state.stack.end() - values.size() - 1;
+        if (auto num = value.tryGetNum()) {
+          // argument is a number — perform the primitive operation
+          state.heap.updateNum(*root, fn_(*num));
+          state.stack.erase(root + 1, state.stack.end());
+        }
+        else {
+          // argument not yet a number - undo the last unwind and save the stack
+          state.stack.erase(state.stack.end() - 1, state.stack.end());
+          state.dump.push_back(state.stack);
+          // create a new stack to evaluate the argument
+          state.stack.clear();
+          state.stack.push_back(values.back());
+        }
+        return state;
+      }
+
+    private:
+      const char * const getDescription() const override { return "NPrim"; }
+
+      const Fn fn_;
     };
 
     class NInd : public TiNode
@@ -233,52 +281,6 @@ namespace {
       const Addr addr_;
     };
 
-    class NPrim : public TiNode
-    {
-    public:
-      using Fn = std::function<int(int)>;
-
-      NPrim(Name name, Fn fn) : name_(std::move(name)), fn_(std::move(fn)) { }
-
-      std::ostream& print(std::ostream& os) const override {
-        return os << "NPrim <" << name_ << ">";
-      }
-
-      TiState step(TiState state) const override {
-        const auto values = getArgs(state.heap, state.stack);
-        if (values.size() < 1) {
-          throw std::runtime_error("Not enough arguments to apply primitive '" + name_
-          + "'. 1 required, but only " + std::to_string(state.stack.size()-1) + " supplied");
-        }
-        const auto& value = state.heap.lookup(values.back());
-        auto root = state.stack.end() - values.size() - 1;
-        if (auto num = value.tryGetNum()) {
-          state.heap.updateNum(*root, fn_(*num));
-          state.stack.erase(root + 1, state.stack.end());
-        }
-        else {
-          // argument not yet a number — save the stack and evaluate it
-          state.stack.erase(state.stack.end() - 1, state.stack.end());
-          state.dump.push_back(state.stack);
-          state.stack.clear();
-          state.stack.push_back(values.back());
-        }
-        return state;
-      }
-
-    private:
-      TiStack getArgs(const TiHeap& heap, const TiStack& stack) const {
-        TiStack args;
-        std::transform(stack.cbegin(), stack.cend() - 1, std::back_inserter(args),
-                        [&](const Addr addr){
-                          return heap.lookup(addr).getArg();
-                        });
-        return args;
-      }
-
-      const Name name_;
-      const Fn fn_;
-    };
 }
 
 TiHeap::Addr
@@ -323,12 +325,6 @@ TiHeap::Addr
 TiHeap::updateNum(const Addr addr, const int n)
 {
   return update<NNum>(addr, n);
-}
-
-TiHeap::Addr
-TiHeap::updateSupercomb(const Addr addr, const Name& name, const std::vector<Name>& args, const CoreExpr& body)
-{
-  return update<NSupercomb>(addr, name, args, body);
 }
 
 TiHeap::Addr
