@@ -24,6 +24,7 @@ namespace kfl {
     using std::vector<Addr>::empty;
     using std::vector<Addr>::size;
 
+    using std::vector<Addr>::clear;
     using std::vector<Addr>::erase;
     using std::vector<Addr>::push_back;
 

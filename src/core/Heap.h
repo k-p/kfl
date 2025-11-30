@@ -31,6 +31,7 @@ namespace kfl {
     virtual Addr allocNum(int) = 0;
     virtual Addr allocSupercomb(const Name& name, const ArgList& args,
                                 const CoreExpr& body) = 0;
+    virtual Addr allocPrim(const Name& name, std::function<int(int)> fn) = 0;
 
     virtual const Node& lookup(Addr addr) const = 0;
   };

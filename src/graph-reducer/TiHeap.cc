@@ -122,10 +122,16 @@ namespace {
       }
 
       TiState step(TiState state) const override {
-        throw std::runtime_error("Number applied as function");
+        if (state.dump.empty()) {
+          throw std::runtime_error("Number applied as function");
+        }
+        state.stack = state.dump.back();
+        state.dump.pop_back();
+        return state;
       }
 
       bool isDataNode() const override { return true; }
+      std::optional<int> tryGetNum() const override { return num_; }
 
     private:
       const int num_;
@@ -140,6 +146,10 @@ namespace {
       }
 
       TiState step(TiState state) const override {
+        auto& arg = state.heap.lookup(getArg());
+        if (arg.isIndNode()) {
+          arg_ = arg.getTarget();
+        }
         state.stack.push_back(fn_);
         state.stats.incPrimitive();
         return state;
@@ -151,7 +161,7 @@ namespace {
 
     private:
       const Addr fn_;
-      const Addr arg_;
+      mutable Addr arg_;
     };
 
     class NSupercomb : public TiNode {
@@ -216,8 +226,58 @@ namespace {
         return state;
       }
 
+      bool isIndNode() const override { return true; }
+      Addr getTarget() const override { return addr_; }
+
     private:
       const Addr addr_;
+    };
+
+    class NPrim : public TiNode
+    {
+    public:
+      using Fn = std::function<int(int)>;
+
+      NPrim(Name name, Fn fn) : name_(std::move(name)), fn_(std::move(fn)) { }
+
+      std::ostream& print(std::ostream& os) const override {
+        return os << "NPrim <" << name_ << ">";
+      }
+
+      TiState step(TiState state) const override {
+        const auto values = getArgs(state.heap, state.stack);
+        if (values.size() < 1) {
+          throw std::runtime_error("Not enough arguments to apply primitive '" + name_
+          + "'. 1 required, but only " + std::to_string(state.stack.size()-1) + " supplied");
+        }
+        const auto& value = state.heap.lookup(values.back());
+        auto root = state.stack.end() - values.size() - 1;
+        if (auto num = value.tryGetNum()) {
+          state.heap.updateNum(*root, fn_(*num));
+          state.stack.erase(root + 1, state.stack.end());
+        }
+        else {
+          // argument not yet a number — save the stack and evaluate it
+          state.stack.erase(state.stack.end() - 1, state.stack.end());
+          state.dump.push_back(state.stack);
+          state.stack.clear();
+          state.stack.push_back(values.back());
+        }
+        return state;
+      }
+
+    private:
+      TiStack getArgs(const TiHeap& heap, const TiStack& stack) const {
+        TiStack args;
+        std::transform(stack.cbegin(), stack.cend() - 1, std::back_inserter(args),
+                        [&](const Addr addr){
+                          return heap.lookup(addr).getArg();
+                        });
+        return args;
+      }
+
+      const Name name_;
+      const Fn fn_;
     };
 }
 
@@ -237,6 +297,12 @@ TiHeap::Addr
 TiHeap::allocSupercomb(const Name& name, const std::vector<Name>& args, const CoreExpr& body)
 {
   return allocate<NSupercomb>(name, args, body);
+}
+
+TiHeap::Addr
+TiHeap::allocPrim(const Name& name, std::function<int(int)> fn)
+{
+  return allocate<NPrim>(name, fn);
 }
 
 TiHeap::Addr

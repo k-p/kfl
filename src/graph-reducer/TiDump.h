@@ -1,15 +1,14 @@
 /* @(#)TiDump.h
  */
 
-#ifndef __TIDUMP_H__
-#define __TIDUMP_H__
+#pragma once
+
+#include "TiStack.h"
+
+#include <vector>
 
 namespace kfl {
 
-  class TiDump
-  {
-  };
+  using TiDump = std::vector<TiStack>;
 
 } /* end namespace kfl */
-
-#endif /* __TIDUMP_H__ */

@@ -26,9 +26,25 @@ namespace {
     return std::tuple(heap, globals);
   }
 
+  auto allocatePrim(std::tuple<TiHeap, TiGlobals> acc, const std::pair<std::string, std::function<int(int)>>& prim)
+  {
+    auto [heap, globals] = acc;
+    const auto name = prim.first;
+    globals[name] = heap.allocPrim(name, prim.second);
+    return std::tuple(heap, globals);
+  }
+
   auto buildInitialHeap(const CoreProgram& program)
   {
-    return boost::accumulate(program.getDefns(), std::tuple(TiHeap(), TiGlobals()), &allocateSc);
+    auto [heap, globals] = boost::accumulate(program.getDefns(), std::tuple(TiHeap(), TiGlobals()), &allocateSc);
+    std::vector<std::pair<std::string, std::function<int(int)>>> primitives = {
+      {"negate", std::negate<int>()}
+      //{"+", std::plus<int>()},
+      //{"-", std::minus<int>()},
+      //{"*", std::multiplies<int>()},
+      //{"/", std::divides<int>()}
+    };
+    return boost::accumulate(primitives, std::tuple(heap, globals), &allocatePrim);
   }
 
   TiState compile(const CoreProgram& program)

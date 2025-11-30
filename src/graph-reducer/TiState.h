@@ -38,7 +38,8 @@ namespace kfl {
 
   inline bool tiFinal(const TiState& state)
   {
-    return state.stack.size() == 1
+    return state.dump.empty()
+      && state.stack.size() == 1
       && state.heap.lookup(state.stack.back()).isDataNode();
   }
 

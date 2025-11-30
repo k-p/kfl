@@ -10,6 +10,7 @@
 
 #include <exception>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -26,12 +27,17 @@ namespace kfl {
     public:
       virtual TiState step(TiState state) const = 0;
       virtual bool isDataNode() const { return false; }
+      virtual bool isIndNode() const { return false; }
+      virtual std::optional<int> tryGetNum() const { return {}; }
+      int getNum() const { if (auto num = tryGetNum()) return *num; throw std::runtime_error("Tried to get number of node that is not a number"); }
       virtual Addr getArg() const { throw std::runtime_error("Tried to get arg of node that is not an application"); }
+      virtual Addr getTarget() const { throw std::runtime_error("Tried to get target of node that is not an indirection"); }
     };
 
     Addr allocAp(Addr fn, Addr arg) override;
     Addr allocNum(int n) override;
     Addr allocSupercomb(const Name& name, const ArgList& args, const CoreExpr& body) override;
+    Addr allocPrim(const Name& name, std::function<int(int)> fn) override;
 
     Addr alloc();
     Addr updateAp(Addr addr, Addr fn, Addr arg);
