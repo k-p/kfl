@@ -29,10 +29,10 @@ namespace kfl {
                 using qi::alpha;
                 using qi::char_;
                 using qi::lexeme;
-                using qi::ulong_;
+                using qi::int_;
 
                 var %= lexeme[(alpha >> *(alnum | char_('_'))) - keywords];
-                num %= ulong_;
+                num %= int_;
 
                 constr %= "Pack{" >> num >> ',' >> num >> '}';
 
