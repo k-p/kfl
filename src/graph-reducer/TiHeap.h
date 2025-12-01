@@ -37,7 +37,8 @@ namespace kfl {
     Addr allocAp(Addr fn, Addr arg) override;
     Addr allocNum(int n) override;
     Addr allocSupercomb(const Name& name, const ArgList& args, const CoreExpr& body) override;
-    Addr allocPrim(const Name& name, std::function<int(int)> fn) override;
+    Addr allocUnaryPrim(const Name& name, std::function<int(int)> fn) override;
+    Addr allocBinaryPrim(const Name& name, std::function<int(int, int)> fn) override;
 
     Addr alloc();
     Addr updateAp(Addr addr, Addr fn, Addr arg);

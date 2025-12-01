@@ -180,7 +180,7 @@ namespace {
           + std::to_string(n) + " required, but only " + std::to_string(stack.size()-1) + " supplied");
         }
         TiStack args;
-        std::transform(stack.cbegin(), stack.cend() - 1, std::back_inserter(args),
+        std::transform(stack.crbegin() + 1, stack.crend(), std::back_inserter(args),
                         [&](const Addr addr){
                           return heap.lookup(addr).getArg();
                         });
@@ -202,9 +202,9 @@ namespace {
       TiState step(TiState state) const override {
         const TiStack values = getArgs(state.heap, state.stack, args_.size());
         std::map<Name, Addr> env(state.globals);
-        auto v = values.rbegin();
+        auto v = values.cbegin();
         for (const auto& name : args_) {
-          assert(v != values.rend());
+          assert(v != values.cend());
           env[name] = *v;
           ++v;
         }
@@ -229,33 +229,65 @@ namespace {
     {
       using super = NFn;
     public:
-      using Fn = std::function<int(int)>;
-
-      NPrim(Name name, Fn fn) : super(name), fn_(std::move(fn)) { }
+      NPrim(Name name) : super(name) { }
 
       TiState step(TiState state) const override {
-        const auto values = getArgs(state.heap, state.stack, 1);
-        const auto& value = state.heap.lookup(values.back());
-        auto root = state.stack.end() - values.size() - 1;
-        if (auto num = value.tryGetNum()) {
-          // argument is a number — perform the primitive operation
-          state.heap.updateNum(*root, fn_(*num));
-          state.stack.erase(root + 1, state.stack.end());
+        const auto args = getArgs(state.heap, state.stack, arity());
+        unsigned i = 0;
+        for (const auto addr : args) {
+          ++i;
+          const auto& value = state.heap.lookup(addr);
+          if (!value.isDataNode()) {
+            // argument not yet a number - undo the last unwind and save the stack
+            state.stack.erase(state.stack.end() - i, state.stack.end());
+            state.dump.push_back(state.stack);
+            // create a new stack to evaluate the argument
+            state.stack.clear();
+            state.stack.push_back(addr);
+            return state;
+          }
         }
-        else {
-          // argument not yet a number - undo the last unwind and save the stack
-          state.stack.erase(state.stack.end() - 1, state.stack.end());
-          state.dump.push_back(state.stack);
-          // create a new stack to evaluate the argument
-          state.stack.clear();
-          state.stack.push_back(values.back());
-        }
+        // All arguments are evaluated; perform the primitive operation
+        const auto root = state.stack.end() - arity() - 1;
+        std::vector<int> argValues;
+        std::transform(args.cbegin(), args.cend(), std::back_inserter(argValues),
+                       [&](const Addr addr){
+                         return state.heap.lookup(addr).getNum();
+                       });
+        state.heap.updateNum(*root, apply(argValues));
+        state.stack.erase(root + 1, state.stack.end());
         return state;
       }
 
     private:
       const char * const getDescription() const override { return "NPrim"; }
+      virtual size_t arity() const = 0;
+      virtual int apply(std::vector<int> args) const = 0;
+    };
 
+    class NUnaryPrim : public NPrim
+    {
+      using super = NPrim;
+    public:
+      using Fn = std::function<int(int)>;
+      NUnaryPrim(Name name, Fn fn) : super(name), fn_(std::move(fn)) { }
+      size_t arity() const override { return 1; }
+      int apply(std::vector<int> args) const override { return fn_(args[0]); }
+
+    private:
+      const Fn fn_;
+    };
+
+    class NBinaryPrim : public NPrim
+    {
+      using super = NPrim;
+    public:
+      using Fn = std::function<int(int, int)>;
+      NBinaryPrim(Name name, Fn fn) : super(name), fn_(std::move(fn)) { }
+      size_t arity() const override { return 2; }
+      int apply(std::vector<int> args) const override { return fn_(args[0], args[1]); }
+
+    private:
       const Fn fn_;
     };
 
@@ -302,9 +334,15 @@ TiHeap::allocSupercomb(const Name& name, const std::vector<Name>& args, const Co
 }
 
 TiHeap::Addr
-TiHeap::allocPrim(const Name& name, std::function<int(int)> fn)
+TiHeap::allocUnaryPrim(const Name& name, std::function<int(int)> fn)
 {
-  return allocate<NPrim>(name, fn);
+  return allocate<NUnaryPrim>(name, fn);
+}
+
+TiHeap::Addr
+TiHeap::allocBinaryPrim(const Name& name, std::function<int(int, int)> fn)
+{
+  return allocate<NBinaryPrim>(name, fn);
 }
 
 TiHeap::Addr

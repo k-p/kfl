@@ -1,0 +1,1 @@
+main = mul (negate (add (div 10 5) (sub 5 10))) (negate 7)

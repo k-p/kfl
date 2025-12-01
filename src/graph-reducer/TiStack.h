@@ -32,6 +32,8 @@ namespace kfl {
     using std::vector<Addr>::end;
     using std::vector<Addr>::cbegin;
     using std::vector<Addr>::cend;
+    using std::vector<Addr>::crbegin;
+    using std::vector<Addr>::crend;
     using std::vector<Addr>::rbegin;
     using std::vector<Addr>::rend;
 
