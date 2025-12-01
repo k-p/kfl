@@ -3,8 +3,11 @@
 #include "Parser.h"
 #include "Pprint.h"
 
+#include <boost/spirit/include/support_multi_pass.hpp>
+
 #include <exception>
 #include <iostream>
+#include <iterator>
 
 using namespace kfl;
 using namespace kfl::Parser;
@@ -30,13 +33,9 @@ namespace {
 int main()
 {
   try {
-    std::string storage;
     std::cin.unsetf(std::ios::skipws); // No white space skipping!
-    std::copy(std::istream_iterator<char>(std::cin),
-              std::istream_iterator<char>(),
-              std::back_inserter(storage));
-
-    auto p = parse(storage.begin(), storage.end());
+    auto p = parse(boost::spirit::make_default_multi_pass(std::istream_iterator<char>(std::cin)),
+                   boost::spirit::make_default_multi_pass(std::istream_iterator<char>()));
 
     Pprint<CoreId>(std::cout).visit(*p);
     std::cout << std::endl;
