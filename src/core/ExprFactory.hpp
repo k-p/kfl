@@ -4,8 +4,7 @@
  *  Copyright (c) 2013 Keith Dennison. All rights reserved.
  */
 
-#ifndef __EXPR_FACTORY_ICC__
-#define __EXPR_FACTORY_ICC__
+#pragma once
 
 template<class T>
 kfl::ExprFactory<T>::~ExprFactory()
@@ -24,8 +23,7 @@ void
 kfl::ExprFactory<T>::addAlter(AlterVec & alters, std::shared_ptr<ENum<T>> num,
                               std::shared_ptr<BndVec> bnds, std::shared_ptr<Expr<T>> expr)
 {
-  using Alter = typename ECase<T>::Alter;
-  alters.push_back(Alter{num, bnds, expr});
+  alters.push_back({num, bnds, expr});
 }
 
 template<class T>
@@ -53,8 +51,7 @@ template<class T>
 void
 kfl::ExprFactory<T>::addDefn(DefnVec & defns, const T & name, std::shared_ptr<Expr<T>> expr)
 {
-  using Defn = typename ELet<T>::Defn;
-  defns.push_back(Defn(name, expr));
+  defns.push_back({name, expr});
 }
 
 template<class T>
@@ -146,5 +143,3 @@ kfl::ExprFactory<T>::createProgram(std::shared_ptr<ScDefnVec> defns)
 {
   return std::make_unique<Program<T>>(defns);
 }
-
-#endif /* __EXPR_FACTORY_ICC__ */
