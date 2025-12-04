@@ -68,7 +68,7 @@ namespace {
     }
 
     TiStack initial_stack;
-    initial_stack.push_back(address_of_main->second);
+    initial_stack.push(address_of_main->second);
 
     return TiState(initial_stack, TiDump(), heap, globals, TiStats());
   }
@@ -86,7 +86,7 @@ namespace {
       throw std::runtime_error("Stack empty");
     }
 
-    return applyToStats(state.heap.lookup(state.stack.back()).step(state));
+    return applyToStats(state.heap.lookup(state.stack.peek()).step(state));
   }
 
 }

@@ -150,7 +150,7 @@ namespace {
         if (arg.isIndNode()) {
           arg_ = arg.getTarget();
         }
-        state.stack.push_back(fn_);
+        state.stack.push(fn_);
         state.stats.incPrimitive();
         return state;
       }
@@ -174,12 +174,12 @@ namespace {
 
     protected:
       const Name& getName() const { return name_; }
-      TiStack getArgs(const TiHeap& heap, const TiStack& stack, size_t n) const {
+        std::vector<Addr> getArgs(const TiHeap& heap, const TiStack& stack, size_t n) const {
         if (stack.size() - 1 < n) {
           throw std::runtime_error("Not enough arguments to apply " + std::string(getDescription()) + " '" + getName() + "'. "
           + std::to_string(n) + " required, but only " + std::to_string(stack.size()-1) + " supplied");
         }
-        TiStack args;
+        std::vector<Addr> args;
         std::transform(stack.crbegin() + 1, stack.crend(), std::back_inserter(args),
                         [&](const Addr addr){
                           return heap.lookup(addr).getArg();
@@ -200,7 +200,7 @@ namespace {
         : super(name), args_(args), body_(body) { }
 
       TiState step(TiState state) const override {
-        const TiStack values = getArgs(state.heap, state.stack, args_.size());
+        const auto values = getArgs(state.heap, state.stack, args_.size());
         std::map<Name, Addr> env(state.globals);
         auto v = values.cbegin();
         for (const auto& name : args_) {
@@ -208,12 +208,12 @@ namespace {
           env[name] = *v;
           ++v;
         }
-        const auto root = state.stack.end() - args_.size() - 1;
-        const auto addr = InstantiateAndUpdate(state.heap, env, *root)(body_);
-        if (addr != *root) {
-          state.heap.updateInd(*root, addr);
+        state.stack.pop(args_.size());
+        const auto root = state.stack.peek();
+        const auto addr = InstantiateAndUpdate(state.heap, env, root)(body_);
+        if (addr != root) {
+          state.heap.updateInd(root, addr);
         }
-        state.stack.erase(root + 1, state.stack.end());
         state.stats.incSupercomb();
         return state;
       }
@@ -239,23 +239,22 @@ namespace {
           const auto& value = state.heap.lookup(addr);
           if (!value.isDataNode()) {
             // argument not yet a number - undo the last unwind and save the stack
-            state.stack.erase(state.stack.end() - i, state.stack.end());
+            state.stack.pop(i);
             state.dump.push_back(state.stack);
             // create a new stack to evaluate the argument
             state.stack.clear();
-            state.stack.push_back(addr);
+            state.stack.push(addr);
             return state;
           }
         }
         // All arguments are evaluated; perform the primitive operation
-        const auto root = state.stack.end() - arity() - 1;
-        std::vector<int> argValues;
-        std::transform(args.cbegin(), args.cend(), std::back_inserter(argValues),
+        std::vector<int> values;
+        std::transform(args.cbegin(), args.cend(), std::back_inserter(values),
                        [&](const Addr addr){
                          return state.heap.lookup(addr).getNum();
                        });
-        state.heap.updateNum(*root, apply(argValues));
-        state.stack.erase(root + 1, state.stack.end());
+        state.stack.pop(arity());
+        state.heap.updateNum(state.stack.peek(), apply(values));
         return state;
       }
 
@@ -301,7 +300,8 @@ namespace {
       }
 
       TiState step(TiState state) const override {
-        state.stack.back() = addr_;
+        state.stack.pop();
+        state.stack.push(addr_);
         state.stats.incInd();
         return state;
       }

@@ -40,7 +40,7 @@ namespace kfl {
   {
     return state.dump.empty()
       && state.stack.size() == 1
-      && state.heap.lookup(state.stack.back()).isDataNode();
+      && state.heap.lookup(state.stack.peek()).isDataNode();
   }
 
   inline std::ostream& operator<<(std::ostream& os, const TiState& state) {
